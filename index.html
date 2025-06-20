@@ -681,7 +681,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 全局變數
+        // 全局變数
         window.currentUser = null;
         window.userData = null;
         let isLoginMode = true;
@@ -933,7 +933,7 @@
         }
 
         // 消耗一次問題次數（新版，含簡化記錄與總次數）
-        window.consumeQuestion = async function(questionText = '') {
+        window.consumeQuestionCredit = async function(questionText = '') {
             console.log('=== 發送訊息時扣除次數 ===');
             
             if (!window.currentUser || !window.userData) {
@@ -1160,9 +1160,6 @@
                 return false;
             }
         };
-
-        // 保持向後兼容
-        window.consumeQuestion = window.checkQuestionLimit;
 
         // 更新使用次數顯示
         function updateUsageDisplay() {
