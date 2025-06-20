@@ -295,85 +295,86 @@
 
     <script>
         // ====== 攔截器與次數檢查（簡化版） ======
-        function showUsageWarning() {
-            const warning = document.getElementById('usageWarning');
-            if (warning) warning.style.display = 'block';
-        }
-        function closeUsageWarning() {
-            const warning = document.getElementById('usageWarning');
-            if (warning) warning.style.display = 'none';
-        }
-        async function checkAndConsumeUsage(questionText) {
-            console.log('=== 檢查並扣除次數 ===');
-            console.log('問題內容:', questionText);
-            try {
-                if (window.parent && typeof window.parent.consumeQuestion === 'function') {
-                    const result = await window.parent.consumeQuestion(questionText);
-                    if (!result) {
-                        showUsageWarning();
-                        return false;
-                    }
-                    return true;
-                } else {
-                    console.warn('⚠️ 無法取得次數檢查函數，允許繼續操作');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ 檢查使用次數時發生錯誤:', error);
-                return true;
-            }
-        }
-        function interceptChatInput() {
-            const chatbotElement = document.querySelector('.custom-chatbot');
-            if (!chatbotElement?.shadowRoot) {
-                setTimeout(interceptChatInput, 1000);
-                return;
-            }
-            const shadowRoot = chatbotElement.shadowRoot;
-            const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
-            if (inputElement && !inputElement.hasUsageChecker) {
-                console.log('🔧 設置簡化版攔截器');
-                inputElement.hasUsageChecker = true;
-                inputElement.addEventListener('keydown', async function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        const messageText = inputElement.value.trim();
-                        if (messageText) {
-                            console.log('🎯 攔截到訊息發送:', messageText);
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.stopImmediatePropagation();
-                            const canProceed = await checkAndConsumeUsage(messageText);
-                            if (canProceed) {
-                                console.log('✅ 次數扣除成功，發送訊息');
-                                sendMessageManually(inputElement, messageText);
-                            } else {
-                                console.log('❌ 次數不足或扣除失敗，阻止發送');
-                            }
+let isProcessing = false; // 全局變數防止重複處理
+
+// 修正的攔截器
+function interceptChatInput() {
+    const chatbotElement = document.querySelector('.custom-chatbot');
+    if (!chatbotElement?.shadowRoot) {
+        setTimeout(interceptChatInput, 1000);
+        return;
+    }
+
+    const shadowRoot = chatbotElement.shadowRoot;
+    const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
+    
+    if (inputElement && !inputElement.hasUsageChecker) {
+        console.log('🔧 設置防重複攔截器');
+        inputElement.hasUsageChecker = true;
+        
+        inputElement.addEventListener('keydown', async function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                const messageText = inputElement.value.trim();
+                if (messageText && !isProcessing) { // 加入防重複檢查
+                    console.log('🎯 攔截到訊息發送:', messageText);
+                    // 設置處理中標記
+                    isProcessing = true;
+                    // 阻止原始事件
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    try {
+                        // 檢查並扣除次數
+                        const canProceed = await checkAndConsumeUsage(messageText);
+                        if (canProceed) {
+                            console.log('✅ 次數扣除成功，發送訊息');
+                            // 手動發送
+                            await sendMessageManually(inputElement, messageText);
+                        } else {
+                            console.log('❌ 次數不足或扣除失敗，阻止發送');
                         }
+                    } finally {
+                        // 重置處理中標記
+                        setTimeout(() => {
+                            isProcessing = false;
+                        }, 2000);
                     }
-                }, true);
-            }
-            if (!inputElement) {
-                setTimeout(interceptChatInput, 1000);
-            }
-        }
-        function sendMessageManually(inputElement, messageText) {
-            try {
-                console.log('📤 手動發送訊息');
-                const shadowRoot = inputElement.getRootNode();
-                const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"], button[aria-label*="send"]');
-                if (sendButton) {
-                    console.log('找到發送按鈕，點擊發送');
-                    sendButton.click();
-                    return;
+                } else if (isProcessing) {
+                    console.log('⚠️ 正在處理中，忽略重複輸入');
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
-                const form = inputElement.closest('form');
-                if (form) {
-                    console.log('找到表單，提交表單');
-                    form.requestSubmit();
-                    return;
-                }
-                console.log('使用模擬按鍵發送');
+            }
+        }, true);
+    }
+
+    if (!inputElement) {
+        setTimeout(interceptChatInput, 1000);
+    }
+}
+
+// 改進的手動發送函數
+async function sendMessageManually(inputElement, messageText) {
+    try {
+        console.log('📤 手動發送訊息');
+        // 暫時完全移除攔截器
+        inputElement.hasUsageChecker = false;
+        inputElement.removeEventListener('keydown', arguments.callee);
+        // 方法1: 尋找並點擊發送按鈕
+        const shadowRoot = inputElement.getRootNode();
+        const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"], button[aria-label*="send"]');
+        if (sendButton) {
+            console.log('📤 找到發送按鈕，點擊發送');
+            sendButton.click();
+        } else {
+            // 方法2: 觸發表單提交
+            const form = inputElement.closest('form');
+            if (form) {
+                console.log('📤 找到表單，提交表單');
+                form.requestSubmit();
+            } else {
+                // 方法3: 模擬 Enter 鍵
+                console.log('📤 模擬 Enter 鍵發送');
                 const enterEvent = new KeyboardEvent('keydown', {
                     key: 'Enter',
                     code: 'Enter',
@@ -382,46 +383,272 @@
                     bubbles: true,
                     cancelable: true
                 });
-                inputElement.hasUsageChecker = false;
                 inputElement.dispatchEvent(enterEvent);
-                setTimeout(() => {
-                    inputElement.hasUsageChecker = true;
-                }, 2000);
-            } catch (error) {
-                console.error('手動發送訊息失敗:', error);
             }
         }
-        function observeChatbotChanges() {
+        // 延遲重新設置攔截器
+        setTimeout(() => {
+            console.log('🔄 重新設置攔截器');
+            interceptChatInput();
+        }, 3000);
+    } catch (error) {
+        console.error('❌ 手動發送訊息失敗:', error);
+        // 發送失敗時也要重新設置攔截器
+        setTimeout(() => {
+            interceptChatInput();
+        }, 2000);
+    }
+}
+
+// 簡化版的監聽 DOM 變化
+function observeChatbotChanges() {
+    const chatbotElement = document.querySelector('.custom-chatbot');
+    if (!chatbotElement) {
+        setTimeout(observeChatbotChanges, 1000);
+        return;
+    }
+    // 減少監聽頻率，避免過度觸發
+    const observer = new MutationObserver(function(mutations) {
+        let shouldResetup = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // 檢查是否有重要的 DOM 變化
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const hasInput = node.querySelector && node.querySelector('input, textarea');
+                        if (hasInput) {
+                            shouldResetup = true;
+                        }
+                    }
+                });
+            }
+        });
+        if (shouldResetup) {
+            console.log('🔄 偵測到重要 DOM 變化，重新設置攔截器');
+            setTimeout(interceptChatInput, 1000);
+        }
+    });
+    observer.observe(chatbotElement, {
+        childList: true,
+        subtree: true
+    });
+}
+        // ====== 新版次數檢查與 AI 回應監聽邏輯 ======
+        // 全局變數來追蹤狀態
+        let lastMessageCount = 0;
+        let isWaitingForResponse = false;
+        let responseCheckInterval = null;
+
+        // 改進的回應監聽器 - 使用多種策略
+        function setupResponseMonitor() {
+            console.log('🔧 設置 AI 回應監聽器（多策略）');
+            // 策略1: 定時檢查訊息數量變化
+            setupMessageCountMonitor();
+            // 策略2: DOM 變化監聽
+            setupDOMChangeMonitor();
+            // 策略3: 定時掃描新訊息
+            setupPeriodicScan();
+        }
+
+        // 策略1: 監聽訊息數量變化
+        function setupMessageCountMonitor() {
+            setInterval(() => {
+                if (!isWaitingForResponse) return;
+                const chatbotElement = document.querySelector('.custom-chatbot');
+                if (!chatbotElement?.shadowRoot) return;
+                const messageElements = getAllMessageElements(chatbotElement.shadowRoot);
+                const currentCount = messageElements.length;
+                if (currentCount > lastMessageCount) {
+                    console.log('📊 訊息數量增加:', lastMessageCount, '→', currentCount);
+                    // 檢查最新的訊息是否為 AI 回應
+                    const latestMessages = messageElements.slice(lastMessageCount);
+                    for (const msg of latestMessages) {
+                        if (isAIMessage(msg)) {
+                            console.log('🎯 透過訊息計數偵測到 AI 回應');
+                            handleAIResponse(msg);
+                            break;
+                        }
+                    }
+                    lastMessageCount = currentCount;
+                }
+            }, 1000);
+        }
+
+        // 策略2: DOM 變化監聽
+        function setupDOMChangeMonitor() {
             const chatbotElement = document.querySelector('.custom-chatbot');
-            if (!chatbotElement) {
-                setTimeout(observeChatbotChanges, 1000);
+            if (!chatbotElement?.shadowRoot) {
+                setTimeout(setupDOMChangeMonitor, 1000);
+                return;
+            }
+            const chatContainer = findChatContainer(chatbotElement.shadowRoot);
+            if (!chatContainer) {
+                setTimeout(setupDOMChangeMonitor, 1000);
                 return;
             }
             const observer = new MutationObserver(function(mutations) {
+                if (!isWaitingForResponse) return;
                 mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        setTimeout(interceptChatInput, 500);
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === Node.ELEMENT_NODE && isAIMessage(node)) {
+                                console.log('🎯 透過 DOM 變化偵測到 AI 回應');
+                                handleAIResponse(node);
+                            }
+                        });
+                    }
+                    // 也檢查文字內容變化
+                    if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                        const target = mutation.target;
+                        if (target && isAIMessage(target)) {
+                            console.log('🎯 透過內容變化偵測到 AI 回應');
+                            handleAIResponse(target);
+                        }
                     }
                 });
             });
-            observer.observe(chatbotElement, {
+            observer.observe(chatContainer, {
                 childList: true,
-                subtree: true
+                subtree: true,
+                characterData: true
             });
-            if (chatbotElement.shadowRoot) {
-                const shadowObserver = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'childList') {
-                            setTimeout(interceptChatInput, 500);
-                        }
-                    });
-                });
-                shadowObserver.observe(chatbotElement.shadowRoot, {
-                    childList: true,
-                    subtree: true
-                });
-            }
+            console.log('✅ DOM 變化監聽器設置完成');
         }
+
+        // 策略3: 定時掃描
+        function setupPeriodicScan() {
+            setInterval(() => {
+                if (!isWaitingForResponse) return;
+                const chatbotElement = document.querySelector('.custom-chatbot');
+                if (!chatbotElement?.shadowRoot) return;
+                // 掃描所有訊息，尋找新的 AI 回應
+                const allMessages = getAllMessageElements(chatbotElement.shadowRoot);
+                const recentMessages = allMessages.slice(-3); // 檢查最近3則訊息
+                for (const msg of recentMessages) {
+                    if (isAIMessage(msg) && !msg.hasAttribute('data-processed')) {
+                        console.log('🎯 透過定時掃描偵測到 AI 回應');
+                        msg.setAttribute('data-processed', 'true');
+                        handleAIResponse(msg);
+                        break;
+                    }
+                }
+            }, 2000);
+        }
+
+        // 獲取所有訊息元素
+        function getAllMessageElements(shadowRoot) {
+            const selectors = [
+                '[class*="message"]',
+                '[class*="chat"]',
+                '[role="log"] > *',
+                '.flex.items-start',
+                'div[class*="bubble"]',
+                'div[class*="response"]'
+            ];
+            let allMessages = [];
+            for (const selector of selectors) {
+                const messages = Array.from(shadowRoot.querySelectorAll(selector));
+                if (messages.length > 0) {
+                    allMessages = messages;
+                    break;
+                }
+            }
+            return allMessages;
+        }
+
+        // 改進的 AI 訊息判斷
+        function isAIMessage(element) {
+            if (!element || !element.textContent) return false;
+            const text = element.textContent.trim();
+            if (text.length < 5) return false; // 太短不算
+            // 檢查 CSS 類名
+            const className = element.className || '';
+            const isBot = className.includes('bot') || 
+                          className.includes('ai') || 
+                          className.includes('assistant') ||
+                          className.includes('system');
+            const isUser = className.includes('user') || 
+                           className.includes('human') ||
+                           className.includes('customer');
+            // 如果明確標示為 bot 訊息
+            if (isBot && !isUser) {
+                console.log('✓ 透過 CSS 類名判斷為 AI 訊息');
+                return true;
+            }
+            // 檢查父元素
+            let parent = element.parentElement;
+            while (parent) {
+                const parentClass = parent.className || '';
+                if (parentClass.includes('bot') && !parentClass.includes('user')) {
+                    console.log('✓ 透過父元素類名判斷為 AI 訊息');
+                    return true;
+                }
+                parent = parent.parentElement;
+            }
+            // 檢查內容特徵（啟發式判斷）
+            const aiIndicators = [
+                '根據', '依據', '建議', '建築技術規則', '條文', '法規',
+                '您好', '可以', '應該', '需要', '規定', '辦法'
+            ];
+            const hasAIFeatures = aiIndicators.some(indicator => text.includes(indicator));
+            // 檢查是否為用戶輸入的特徵
+            const userIndicators = [
+                '請問', '我想', '如何', '什麼', '？', '請告訴我'
+            ];
+            const hasUserFeatures = userIndicators.some(indicator => text.includes(indicator));
+            // 如果有 AI 特徵且文字較長，且不是明顯的用戶提問
+            if (hasAIFeatures && text.length > 20 && !hasUserFeatures) {
+                console.log('✓ 透過內容特徵判斷為 AI 訊息');
+                return true;
+            }
+            // 如果文字很長（>100字）且不包含問號，可能是 AI 回應
+            if (text.length > 100 && !text.includes('？') && !text.includes('?')) {
+                console.log('✓ 透過長度判斷為 AI 訊息');
+                return true;
+            }
+            return false;
+        }
+
+        // 處理 AI 回應
+        function handleAIResponse(messageElement) {
+            if (!isWaitingForResponse) {
+                console.log('⚠️ 當前不在等待回應狀態，忽略');
+                return;
+            }
+            const content = messageElement.textContent?.trim();
+            console.log('🎯 確認收到 AI 回應');
+            console.log('回應內容預覽:', content?.substring(0, 100) + '...');
+            // 標記為已處理
+            messageElement.setAttribute('data-processed', 'true');
+            // 重置等待狀態
+            isWaitingForResponse = false;
+            // 延遲一下確保回應完全載入
+            setTimeout(() => {
+                consumeQuestionAfterResponse();
+            }, 1500);
+        }
+
+        // 監聽 header.html 傳來的 LLM 切換訊息
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'chatflowChange') {
+                const newId = event.data.chatflowId;
+                const chatbot = document.querySelector('flowise-fullchatbot');
+                if (chatbot) {
+                    chatbot.setAttribute('chatflowid', newId);
+                    if (typeof chatbot.reload === 'function') {
+                        chatbot.reload();
+                    } else {
+                        const parent = chatbot.parentNode;
+                        const next = chatbot.nextSibling;
+                        chatbot.remove();
+                        const newBot = document.createElement('flowise-fullchatbot');
+                        newBot.className = 'custom-chatbot';
+                        newBot.setAttribute('chatflowid', newId);
+                        parent.insertBefore(newBot, next);
+                    }
+                }
+            }
+        });
         
         // 全局變数追蹤是否已攔截
         let messageIntercepted = false;
@@ -472,28 +699,145 @@
 
         setTimeout(setupScrollListener, 1000);
         
-        // 監聽 header.html 傳來的 LLM 切換訊息
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'chatflowChange') {
-                const newId = event.data.chatflowId;
-                const chatbot = document.querySelector('flowise-fullchatbot');
-                if (chatbot) {
-                    chatbot.setAttribute('chatflowid', newId);
-                    if (typeof chatbot.reload === 'function') {
-                        chatbot.reload();
-                    } else {
-                        const parent = chatbot.parentNode;
-                        const next = chatbot.nextSibling;
-                        chatbot.remove();
-                        const newBot = document.createElement('flowise-fullchatbot');
-                        newBot.className = 'custom-chatbot';
-                        newBot.setAttribute('chatflowid', newId);
-                        parent.insertBefore(newBot, next);
+        // ====== 攔截器與次數檢查（簡化版） ======
+let isProcessing = false; // 全局變數防止重複處理
+
+// 修正的攔截器
+function interceptChatInput() {
+    const chatbotElement = document.querySelector('.custom-chatbot');
+    if (!chatbotElement?.shadowRoot) {
+        setTimeout(interceptChatInput, 1000);
+        return;
+    }
+
+    const shadowRoot = chatbotElement.shadowRoot;
+    const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
+    
+    if (inputElement && !inputElement.hasUsageChecker) {
+        console.log('🔧 設置防重複攔截器');
+        inputElement.hasUsageChecker = true;
+        
+        inputElement.addEventListener('keydown', async function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                const messageText = inputElement.value.trim();
+                if (messageText && !isProcessing) { // 加入防重複檢查
+                    console.log('🎯 攔截到訊息發送:', messageText);
+                    // 設置處理中標記
+                    isProcessing = true;
+                    // 阻止原始事件
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    try {
+                        // 檢查並扣除次數
+                        const canProceed = await checkAndConsumeUsage(messageText);
+                        if (canProceed) {
+                            console.log('✅ 次數扣除成功，發送訊息');
+                            // 手動發送
+                            await sendMessageManually(inputElement, messageText);
+                        } else {
+                            console.log('❌ 次數不足或扣除失敗，阻止發送');
+                        }
+                    } finally {
+                        // 重置處理中標記
+                        setTimeout(() => {
+                            isProcessing = false;
+                        }, 2000);
                     }
+                } else if (isProcessing) {
+                    console.log('⚠️ 正在處理中，忽略重複輸入');
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
             }
+        }, true);
+    }
+
+    if (!inputElement) {
+        setTimeout(interceptChatInput, 1000);
+    }
+}
+
+// 改進的手動發送函數
+async function sendMessageManually(inputElement, messageText) {
+    try {
+        console.log('📤 手動發送訊息');
+        // 暫時完全移除攔截器
+        inputElement.hasUsageChecker = false;
+        inputElement.removeEventListener('keydown', arguments.callee);
+        // 方法1: 尋找並點擊發送按鈕
+        const shadowRoot = inputElement.getRootNode();
+        const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"], button[aria-label*="send"]');
+        if (sendButton) {
+            console.log('📤 找到發送按鈕，點擊發送');
+            sendButton.click();
+        } else {
+            // 方法2: 觸發表單提交
+            const form = inputElement.closest('form');
+            if (form) {
+                console.log('📤 找到表單，提交表單');
+                form.requestSubmit();
+            } else {
+                // 方法3: 模擬 Enter 鍵
+                console.log('📤 模擬 Enter 鍵發送');
+                const enterEvent = new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13,
+                    bubbles: true,
+                    cancelable: true
+                });
+                inputElement.dispatchEvent(enterEvent);
+            }
+        }
+        // 延遲重新設置攔截器
+        setTimeout(() => {
+            console.log('🔄 重新設置攔截器');
+            interceptChatInput();
+        }, 3000);
+    } catch (error) {
+        console.error('❌ 手動發送訊息失敗:', error);
+        // 發送失敗時也要重新設置攔截器
+        setTimeout(() => {
+            interceptChatInput();
+        }, 2000);
+    }
+}
+
+// 簡化版的監聽 DOM 變化
+function observeChatbotChanges() {
+    const chatbotElement = document.querySelector('.custom-chatbot');
+    if (!chatbotElement) {
+        setTimeout(observeChatbotChanges, 1000);
+        return;
+    }
+    // 減少監聽頻率，避免過度觸發
+    const observer = new MutationObserver(function(mutations) {
+        let shouldResetup = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // 檢查是否有重要的 DOM 變化
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const hasInput = node.querySelector && node.querySelector('input, textarea');
+                        if (hasInput) {
+                            shouldResetup = true;
+                        }
+                    }
+                });
+            }
         });
-        
+        if (shouldResetup) {
+            console.log('🔄 偵測到重要 DOM 變化，重新設置攔截器');
+            setTimeout(interceptChatInput, 1000);
+        }
+    });
+    observer.observe(chatbotElement, {
+        childList: true,
+        subtree: true
+    });
+}
         // ====== 新版次數檢查與 AI 回應監聽邏輯 ======
         // 全局變數來追蹤狀態
         let lastMessageCount = 0;
@@ -1584,32 +1928,4 @@
                     fontSize: 22,
                     renderHTML: true,
                     botMessage: {
-                        backgroundColor: CHATBOT_CONFIG.colors.botBubble,
-                        textColor: CHATBOT_CONFIG.colors.botText,
-                        showAvatar: CHATBOT_CONFIG.avatars.showBotAvatar,
-                        avatarSrc: CHATBOT_CONFIG.avatars.bot
-                    },
-                    userMessage: {
-                        backgroundColor: CHATBOT_CONFIG.colors.userBubble,
-                        textColor: CHATBOT_CONFIG.colors.userText,
-                        showAvatar: CHATBOT_CONFIG.avatars.showUserAvatar,
-                        avatarSrc: CHATBOT_CONFIG.avatars.user
-                    },
-                    titleBackgroundColor: 'transparent',
-                    titleTextColor: '#000000',
-                    textInput: {
-                        placeholder: '請輸入您的問題',
-                        backgroundColor: '#ffffff',
-                        textColor: '#303235',
-                        autoFocus: true
-                    }
-                },
-                footer: {
-                    text: ''
-                }
-            },
-            customCSS: ''
-        })
-    </script>
-</body>
-</html>
+                        backgroundColor: CHAT
