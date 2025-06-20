@@ -408,11 +408,6 @@
                             <option value="3">等級 3</option>
                             <option value="4">等級 4</option>
                             <option value="5">等級 5</option>
-                            <option value="6">等級 6</option>
-                            <option value="7">等級 7</option>
-                            <option value="8">等級 8</option>
-                            <option value="9">等級 9</option>
-                            <option value="10">等級 10</option>
                         </select>
                         <input type="number" id="batchLevelCredits" placeholder="增加額外點數" min="0">
                     </div>
@@ -505,7 +500,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">每日問題次數</label>
-                    <input type="number" id="editUserDailyQuestions" class="form-input" min="1" max="100">
+                    <input type="number" id="editUserDailyQuestions" class="form-input" readonly>
                 </div>
                 <div class="form-group">
                     <label class="form-label">剩餘次數</label>
@@ -689,6 +684,18 @@
             document.getElementById('usersTable').classList.remove('hidden');
         }
 
+        // 根據 level 獲取對應的 dailyQuestions
+        function getDailyQuestionsByLevel(level) {
+            switch (level) {
+                case 1: return 20;
+                case 2: return 10;
+                case 3: return 5;
+                case 4: return 3;
+                case 5: return 0;
+                default: return 5;
+            }
+        }
+
         // 編輯用戶
         window.editUser = function(userId) {
             console.log('📝 編輯用戶:', userId);
@@ -700,8 +707,10 @@
             }
             editingUserId = userId;
             document.getElementById('editUserEmail').value = user.email || '';
-            document.getElementById('editUserLevel').value = user.level || 5;
-            document.getElementById('editUserDailyQuestions').value = user.dailyQuestions || 10;
+            document.getElementById('editUserLevel').value = user.level || 3;
+            // 根據 level 更新 dailyQuestions 的顯示
+            const dailyQuestions = getDailyQuestionsByLevel(user.level || 3);
+            document.getElementById('editUserDailyQuestions').value = dailyQuestions;
             document.getElementById('editUserQuestionsLeft').value = user.questionsLeft || 0;
             document.getElementById('editUserExtraCredits').value = user.extraCredits || 0;
             const modal = document.getElementById('editUserModal');
@@ -722,15 +731,16 @@
                 return;
             }
             const level = parseInt(document.getElementById('editUserLevel').value);
-            const dailyQuestions = parseInt(document.getElementById('editUserDailyQuestions').value);
+            // 根據等級取得 dailyQuestions
+            const dailyQuestions = getDailyQuestionsByLevel(level);
             const questionsLeft = parseInt(document.getElementById('editUserQuestionsLeft').value);
             const extraCredits = parseInt(document.getElementById('editUserExtraCredits').value);
             if (isNaN(level) || level < 1 || level > 10) {
                 showPanelMessage('等級必須在 1-10 之間', 'error');
                 return;
             }
-            if (isNaN(dailyQuestions) || dailyQuestions < 1 || dailyQuestions > 100) {
-                showPanelMessage('每日問題次數必須在 1-100 之間', 'error');
+            if (isNaN(dailyQuestions) || dailyQuestions < 0 || dailyQuestions > 100) {
+                showPanelMessage('每日問題次數必須在 0-100 之間', 'error');
                 return;
             }
             if (isNaN(questionsLeft) || questionsLeft < 0 || questionsLeft > 100) {
@@ -745,7 +755,7 @@
                 console.log('📤 更新用戶資料到資料庫');
                 await updateDoc(doc(db, 'users', editingUserId), {
                     level: level,
-                    dailyQuestions: dailyQuestions,
+                    dailyQuestions: dailyQuestions, // 根據等級設定
                     questionsLeft: questionsLeft,
                     extraCredits: extraCredits
                 });
