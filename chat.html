@@ -341,153 +341,41 @@
 
         setTimeout(setupScrollListener, 1000);
         
-        // 1. 簡單粗暴的全局變量記錄
-        let lastUserInput = '';
-        let isProcessing = false;
+        // 攔截用戶問題並寫入 LocalStorage
+        // 1. 定義 LocalStorage 的鍵名
+        const STORAGE_KEY = 'new_user_question';
 
-        // 2. 監聽所有訊息（包含 LLM 切換和用戶問題）
-        window.addEventListener('message', function(event) {
-            // 處理 LLM 切換
-            if (event.data && event.data.type === 'chatflowChange') {
-                const newId = event.data.chatflowId;
-                const chatbot = document.querySelector('flowise-fullchatbot');
-                if (chatbot) {
-                    chatbot.setAttribute('chatflowid', newId);
-                    location.reload(); // 簡單重載
-                }
-            }
-            // 處理模式切換
-            else if (event.data && event.data.type === 'modeChange') {
-                if (event.data.mode !== 'chat') {
-                    window.location.href = 'intro.html';
-                }
-            }
-            // 處理警告相關
-            else if (event.data && event.data.type === "clearUsageWarning") {
-                document.getElementById('usageWarning').style.display = 'none';
-            } 
-            else if (event.data && event.data.type === "checkUsageWarning") {
-                // 直接檢查，不管父視窗
-                setTimeout(() => {
-                    try {
-                        if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                            window.parent.checkQuestionLimit().then(hasCredit => {
-                                if (!hasCredit) showUsageWarning();
-                            }).catch(() => {});
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatbot = document.querySelector('flowise-fullchatbot');
+            if (chatbot) {
+                // 監聽 Flowise 元件的 'message' 事件
+                chatbot.addEventListener('message', (event) => {
+                    const message = event.detail;
+                    // 只關心使用者訊息
+                    if (message && message.role === 'user' && message.text) {
+                        console.log('💬 攔截到使用者問題:', message.text);
+                        const payload = {
+                            question: message.text,
+                            timestamp: Date.now()
+                        };
+                        try {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                            console.log('💾 已將問題寫入 LocalStorage');
+                        } catch (e) {
+                            console.error('❌ 寫入 LocalStorage 失敗:', e);
                         }
-                    } catch(e) {}
-                }, 1000);
-            }
-        });
-
-        // 3. 超簡單的輸入攔截 - 每 1 秒檢查一次輸入框內容
-        function simpleCheck() {
-            try {
-                const chatbot = document.querySelector('.custom-chatbot');
-                if (!chatbot?.shadowRoot) {
-                    setTimeout(simpleCheck, 1000);
-                    return;
-                }
-                
-                const input = chatbot.shadowRoot.querySelector('input, textarea');
-                if (!input) {
-                    setTimeout(simpleCheck, 1000);
-                    return;
-                }
-                
-                // 檢查輸入內容是否改變且不為空
-                const currentValue = input.value?.trim() || '';
-                if (currentValue && currentValue !== lastUserInput && !isProcessing) {
-                    
-                    // 用戶正在打字，記錄最後內容
-                    lastUserInput = currentValue;
-                    
-                    // 監聽 Enter 鍵或按鈕點擊
-                    input.addEventListener('keydown', function(e) {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            handleUserSubmit(currentValue);
-                        }
-                    }, { once: true });
-                    
-                    // 找按鈕並監聽
-                    const button = chatbot.shadowRoot.querySelector('button');
-                    if (button) {
-                        button.addEventListener('click', function() {
-                            handleUserSubmit(input.value?.trim() || '');
-                        }, { once: true });
                     }
-                }
-                
-            } catch(e) {
-                // 靜默處理錯誤
+                });
             }
-            
-            // 繼續檢查
-            setTimeout(simpleCheck, 1000);
-        }
 
-        // 4. 處理用戶提交
-        async function handleUserSubmit(question) {
-            if (!question || isProcessing) return;
-            
-            isProcessing = true;
-            console.log('🎯 用戶提交問題:', question);
-            
-            try {
-                // 簡單粗暴：直接向父視窗發送
-                window.parent.postMessage({ 
-                    type: "userQuestion", 
-                    question: question 
-                }, "*");
-                
-                // 多發幾次確保收到（手機版保險）
-                setTimeout(() => {
-                    window.parent.postMessage({ 
-                        type: "userQuestion", 
-                        question: question 
-                    }, "*");
-                }, 100);
-                
-                setTimeout(() => {
-                    window.parent.postMessage({ 
-                        type: "userQuestion", 
-                        question: question 
-                    }, "*");
-                }, 500);
-                
-            } catch(e) {
-                console.log('發送訊息失敗:', e);
-            }
-            
-            // 1秒後重置
-            setTimeout(() => {
-                isProcessing = false;
-                lastUserInput = ''; // 重置，允許下次同樣問題
-            }, 1000);
-        }
-
-        // 5. 顯示次數用完警告
-        function showUsageWarning() {
-            document.getElementById('usageWarning').style.display = 'block';
-        }
-
-        // 6. 啟動檢查
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📱 啟動簡單版攔截器');
-            
-            // 延遲啟動（給手機更多時間）
-            setTimeout(simpleCheck, 3000);
-            
-            // 其他按鈕事件保持不變
+            // --- 保留原有的下載按鈕等邏輯 ---
             const saveButton = document.getElementById('saveButton');
             const exportDialog = document.getElementById('exportDialog');
-            
-            saveButton?.addEventListener('click', function(e) {
+            saveButton?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 exportDialog.style.display = exportDialog.style.display === 'block' ? 'none' : 'block';
             });
-            
-            document.addEventListener('click', function(e) {
+            document.addEventListener('click', (e) => {
                 if (exportDialog && !saveButton?.contains(e.target) && !exportDialog.contains(e.target)) {
                     exportDialog.style.display = 'none';
                 }
