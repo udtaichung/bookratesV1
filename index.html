@@ -786,40 +786,79 @@
 
         // 消耗一次問題次數
         window.consumeQuestion = async function() {
+            console.log('=== 檢查問題次數 ===');
+            
             if (!window.currentUser || !window.userData) {
                 console.error('用戶未登入或資料未載入');
                 return false;
             }
 
-            let questionsLeft = window.userData.questionsLeft;
-            let extraCredits = window.userData.extraCredits;
+            // 重新從資料庫獲取最新資料，避免資料不同步
+            try {
+                const userDoc = await getDoc(doc(db, 'users', window.currentUser.uid));
+                if (userDoc.exists()) {
+                    const latestData = userDoc.data();
+                    window.userData.questionsLeft = latestData.questionsLeft || 0;
+                    window.userData.extraCredits = latestData.extraCredits || 0;
+                    console.log('最新資料:', { 
+                        questionsLeft: window.userData.questionsLeft, 
+                        extraCredits: window.userData.extraCredits 
+                    });
+                }
+            } catch (error) {
+                console.error('獲取最新資料失敗:', error);
+            }
 
-            if (questionsLeft > 0) {
-                // 使用一般次數
-                questionsLeft--;
-            } else if (extraCredits > 0) {
-                // 使用額外次數
-                extraCredits--;
-            } else {
-                // 次數用完
+            let questionsLeft = window.userData.questionsLeft || 0;
+            let extraCredits = window.userData.extraCredits || 0;
+            let totalAvailable = questionsLeft + extraCredits;
+            
+            console.log('當前狀態:', { 
+                email: window.currentUser.email,
+                questionsLeft, 
+                extraCredits,
+                totalAvailable
+            });
+
+            // 檢查是否有可用次數
+            if (totalAvailable <= 0) {
+                console.log('❌ 次數已用完');
                 alert('今日問題次數已用完！請明天再來或聯絡管理員增加額外次數。');
                 return false;
             }
 
+            // 決定扣除哪種次數
+            let newQuestionsLeft = questionsLeft;
+            let newExtraCredits = extraCredits;
+            
+            if (questionsLeft > 0) {
+                newQuestionsLeft = questionsLeft - 1;
+                console.log('✅ 扣除一般次數，從', questionsLeft, '變為', newQuestionsLeft);
+            } else {
+                newExtraCredits = extraCredits - 1;
+                console.log('✅ 扣除額外次數，從', extraCredits, '變為', newExtraCredits);
+            }
+
+            // 更新資料庫
             try {
                 await updateDoc(doc(db, 'users', window.currentUser.uid), {
-                    questionsLeft: questionsLeft,
-                    extraCredits: extraCredits
+                    questionsLeft: newQuestionsLeft,
+                    extraCredits: newExtraCredits
                 });
 
-                window.userData.questionsLeft = questionsLeft;
-                window.userData.extraCredits = extraCredits;
+                // 更新本地資料
+                window.userData.questionsLeft = newQuestionsLeft;
+                window.userData.extraCredits = newExtraCredits;
                 updateUsageDisplay();
                 
-                console.log('問題次數已消耗，剩餘:', questionsLeft, '額外:', extraCredits);
+                console.log('✅ 次數更新成功:', { 
+                    questionsLeft: newQuestionsLeft, 
+                    extraCredits: newExtraCredits 
+                });
                 return true;
+                
             } catch (error) {
-                console.error('消耗問題次數錯誤:', error);
+                console.error('❌ 更新次數失敗:', error);
                 return false;
             }
         };
