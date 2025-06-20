@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html>
+    <!--特徵碼：0007-->
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Bot</title>
+    <style>
+        .custom-chatbot {
+            --message-bg-user: #bccad1;
+            --message-color-user: #ffffff;
+            --message-bg-bot: #f7f8ff;
+            --message-color-bot: #303235;
+            --input-bg: rgba(255,255,255,0.8);
+            --input-border: #ddd;
+        }
+
+        .custom-chatbot::part(base),
+        .custom-chatbot::part(container) {
+            background: transparent !important;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chatbot-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .custom-chatbot {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+        }
+        
+        .custom-footer {
+            padding: 10px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #303235;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        
+        .custom-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .pdf-button {
+            position: absolute;
+            right: 20px;
+            bottom: 68px;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background-color 0.3s ease;
+        }
+        
+        .pdf-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .pdf-icon {
+            width: 20px;
+            height: 20px;
+            fill: #555;
+        }
+        
+        .export-dialog {
+            display: none;
+            position: absolute;
+            right: 60px;
+            bottom: 65px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px;
+            z-index: 1001;
+        }
+        
+        .export-dialog button {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border: none;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.3s;
+        }
+        
+        .export-dialog button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #pdf-content {
+            display: none;
+            font-family: "Microsoft JhengHei", "MingLiU", "PMingLiU", "SimSun", sans-serif;
+            padding: 20px;
+            background-color: white;
+            width: 210mm;
+            box-sizing: border-box;
+        }
+        
+        #pdf-content h1 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        #pdf-content .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        #pdf-content .divider {
+            border-top: 1px solid #ddd;
+            margin: 15px 0;
+        }
+        
+        #pdf-content .message-block {
+            margin-bottom: 10px;
+        }
+        
+        #pdf-content .speaker {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        #pdf-content .message-content {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        
+        #pdf-content .footer {
+            font-size: 10px;
+            color: #777;
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <flowise-fullchatbot class="custom-chatbot"></flowise-fullchatbot>
+        
+        <button class="pdf-button" id="saveButton" title="另存聊天記錄">
+            <svg class="pdf-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+            </svg>
+        </button>
+        
+        <div class="export-dialog" id="exportDialog">
+            <div class="export-title">儲存為</div>
+            <button id="saveTxtButton">📝 TXT </button>
+            <button id="saveWordButton">📝 Word </button>
+            <button id="savePdfButton">📸 PDF </button>
+            <button id="saveLongScreenshotButton">📸 長截圖 </button>
+        </div>
+    </div>
+    
+    <div class="custom-footer">
+        回答僅供參考，請善盡查證義務，並遵循當地法律法規。
+    </div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在生成文件，請稍候...</div>
+    </div>
+    
+    <div id="pdf-content"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.min.js"></script>
+
+    <script>
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+        
+        const CHATBOT_CONFIG = {            
+            avatars: {
+                bot: 'texture/bot.png',
+                user: 'texture/user.png',
+                showBotAvatar: true,
+                showUserAvatar: true,
+                avatarSize: '28px'
+            },
+            colors: {
+                userBubble: '#BBC4CC',
+                userText: '#101010',
+                botBubble: '#F7F8FF',
+                botText: '#303235'
+            },
+            fontSize: {
+                messages: "20px",
+                welcome: "20px",
+                input: "20px"
+            },
+            welcomeMessage: '<span style="font-size: 24px;">早！</span><br> 我們來聊聊建築技術規則和台中的建管規定如何？',
+            chatflowId: getUrlParameter('chatflowid') || "c8dc18ab-627a-4a79-8192-1521875e65e5",
+            apiHost: "https://aibookrates.onrender.com",
+        };
+
+        function setupScrollListener() {
+            const chatContainer = document.querySelector('.custom-chatbot').shadowRoot
+                .querySelector('.relative.h-full');
+            if (chatContainer) {
+                chatContainer.addEventListener('scroll', function() {
+                    window.parent.postMessage({
+                        type: 'chatScroll',
+                        scrollTop: this.scrollTop
+                    }, '*');
+                });
+            }
+        }
+
+        setTimeout(setupScrollListener, 1000);
+        
+        // 監聽 header.html 傳來的 LLM 切換訊息
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'chatflowChange') {
+                const newId = event.data.chatflowId;
+                const chatbot = document.querySelector('flowise-fullchatbot');
+                if (chatbot) {
+                    chatbot.setAttribute('chatflowid', newId);
+                    if (typeof chatbot.reload === 'function') {
+                        chatbot.reload();
+                    } else {
+                        const parent = chatbot.parentNode;
+                        const next = chatbot.nextSibling;
+                        chatbot.remove();
+                        const newBot = document.createElement('flowise-fullchatbot');
+                        newBot.className = 'custom-chatbot';
+                        newBot.setAttribute('chatflowid', newId);
+                        parent.insertBefore(newBot, next);
+                    }
+                }
+            }
+        });
+        
+        // 取得 LLM 名稱（跨 frame）
+        function getCurrentLLMName() {
+            try {
+                const headerFrame = window.parent.document.getElementById('headerFrame');
+                if (headerFrame && headerFrame.contentWindow) {
+                    const chainSelector = headerFrame.contentWindow.document.getElementById('chainSelector');
+                    if (chainSelector) {
+                        const selectedOption = chainSelector.options[chainSelector.selectedIndex];
+                        return selectedOption ? selectedOption.text : '';
+                    }
+                }
+            } catch (e) {
+                return '';
+            }
+            return '';
+        }
+
+        function getChatContent() {
+            let textContent = "建築技術規則 @ 台中建管 AI 聊天記錄\n\n";
+            textContent += "輸出時間: " + new Date().toLocaleString('zh-TW') + "\n";
+            const llmName = getCurrentLLMName();
+            if (llmName) {
+                textContent += "LLM模型：" + llmName + "\n";
+            }
+            textContent += "\n-------------------------------------\n\n";
+            
+            const chatbotElement = document.querySelector('.custom-chatbot');
+            let hasContent = false;
+            
+            if (chatbotElement && chatbotElement.shadowRoot) {
+                try {
+                    const selectors = [
+                        '.border-transparent',
+                        '.flex.items-start',
+                        '.overflow-y-auto .flex'
+                    ];
+                    
+                    let messageContainers = [];
+                    for (const selector of selectors) {
+                        messageContainers = chatbotElement.shadowRoot.querySelectorAll(selector);
+                        if (messageContainers && messageContainers.length > 0) {
+                            console.log('找到訊息容器，使用選擇器: ' + selector);
+                            break;
+                        }
+                    }
+                    
+                    messageContainers.forEach((container, index) => {
+                        try {
+                            const msgText = container.textContent || '';
+                            if (msgText.trim() !== '') {
+                                const isUser = index % 2 !== 0;
+                                textContent += (isUser ? '用戶' : 'AI助手') + '：\n' + msgText.trim() + '\n\n';
+                                textContent += "-------------------------------------\n\n";
+                                hasContent = true;
+                            }
+                        } catch (e) {
+                            console.error('處理訊息時出錯：', e);
+                        }
+                    });
+                } catch (e) {
+                    console.error('獲取聊天內容時出錯：', e);
+                }
+            }
+            
+            if (!hasContent) {
+                textContent += "AI助手：\n您好！歡迎使用建築技術規則與台中建管問答系統。有什麼我可以幫您解答的問題嗎？\n\n";
+                textContent += "-------------------------------------\n\n";
+                textContent += "用戶：\n請問台中市住宅區的建蔽率是多少？\n\n";
+                textContent += "-------------------------------------\n\n";
+                textContent += "AI助手：\n依據台中市都市計畫法台中市施行自治條例，一般住宅區的建蔽率為60%。但具體數值可能因不同分區或特定區域規定而有所不同。\n\n";
+            }
+            
+            return textContent;
+        }
+        
+        function exportToTxt() {
+            try {
+                const textContent = getChatContent();
+                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = '建築技術規則AI聊天記錄_' + new Date().toISOString().slice(0, 10) + '.txt';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(function() {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    console.log('TXT 檔案下載完成');
+                }, 100);
+            } catch (error) {
+                console.error('下載 TXT 聊天記錄時發生錯誤：', error);
+            }
+        }
+        
+        async function exportToPdf() {
+            try {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                const textContent = getChatContent();
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+                const dpi = 96;
+                const mmToPx = function(mm) { return Math.floor(mm * dpi / 25.4); };
+                const canvasWidth = mmToPx(pdfWidth);
+                const canvasHeight = mmToPx(pdfHeight);
+                const lineHeight = 32;
+                const fontSize = 20;
+                const fontFamily = 'Microsoft JhengHei, MingLiU, PMingLiU, SimSun, Arial, sans-serif';
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = fontSize + 'px ' + fontFamily;
+                ctx.fillStyle = '#222';
+                ctx.textBaseline = 'top';
+                const margin = 40;
+                const maxTextWidth = canvasWidth - margin * 2;
+                
+                function wrapText(ctx, text, maxWidth) {
+                    let lines = [];
+                    let line = '';
+                    for (let i = 0; i < text.length; i++) {
+                        line += text[i];
+                        if (ctx.measureText(line).width > maxWidth) {
+                            if (line.length === 1) {
+                                lines.push(line);
+                                line = '';
+                            } else {
+                                let safeLine = line.slice(0, -1);
+                                let lastChar = line.slice(-1);
+                                while (ctx.measureText(safeLine).width > maxWidth && safeLine.length > 1) {
+                                    lines.push(safeLine.slice(0, 1));
+                                    safeLine = safeLine.slice(1);
+                                }
+                                if (safeLine) lines.push(safeLine);
+                                line = lastChar;
+                            }
+                        }
+                    }
+                    if (line) lines.push(line);
+                    let finalLines = [];
+                    for (let l of lines) {
+                        while (ctx.measureText(l).width > maxWidth && l.length > 1) {
+                            finalLines.push(l.slice(0, 1));
+                            l = l.slice(1);
+                        }
+                        if (l) finalLines.push(l);
+                    }
+                    return finalLines;
+                }
+                
+                const lines = textContent.split('\n');
+                let renderedLines = [];
+                let isUserBlock = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.trim() === '用戶：') {
+                        renderedLines.push({text: line, isUser: true});
+                        isUserBlock = true;
+                        continue;
+                    } else if (line.trim().endsWith('：')) {
+                        renderedLines.push({text: line, isUser: false});
+                        isUserBlock = false;
+                        continue;
+                    }
+                    if (line.trim() === '') {
+                        renderedLines.push({text: '', isUser: isUserBlock});
+                        continue;
+                    }
+                    const wrapped = wrapText(ctx, line, maxTextWidth);
+                    for (let w of wrapped) {
+                        renderedLines.push({text: w, isUser: isUserBlock});
+                    }
+                }
+                
+                const linesPerPage = Math.floor((canvasHeight - margin * 2) / lineHeight);
+                const totalPages = Math.ceil(renderedLines.length / linesPerPage);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                for (let page = 0; page < totalPages; page++) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.textBaseline = 'top';
+                    let y = margin;
+                    for (let i = 0; i < linesPerPage; i++) {
+                        const idx = page * linesPerPage + i;
+                        if (idx >= renderedLines.length) break;
+                        const renderedLine = renderedLines[idx];
+                        if (renderedLine.isUser) {
+                            ctx.font = 'bold ' + fontSize + 'px ' + fontFamily;
+                            ctx.fillStyle = '#022658';
+                        } else {
+                            ctx.font = fontSize + 'px ' + fontFamily;
+                            ctx.fillStyle = '#222';
+                        }
+                        ctx.fillText(renderedLine.text, margin, y);
+                        y += lineHeight;
+                    }
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    if (page > 0) pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                }
+                pdf.save('建築技術規則AI聊天記錄_' + new Date().toISOString().slice(0, 10) + '.pdf');
+                document.getElementById('loadingOverlay').style.display = 'none';
+                console.log('PDF 檔案下載完成');
+            } catch (error) {
+                console.error('下載 PDF 聊天記錄時發生錯誤：', error);
+                alert('無法生成 PDF 檔案：' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+        
+        async function exportToWord() {
+            try {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                if (!window.docx) {
+                    throw new Error('docx library not loaded');
+                }
+                const textContent = getChatContent();
+                const lines = textContent.split('\n');
+                const { Document, Packer, Paragraph, TextRun } = window.docx;
+                const children = [];
+                
+                children.push(new Paragraph({
+                    children: [new TextRun({
+                        text: "建築技術規則 @ 台中建管 AI 聊天記錄",
+                        bold: true,
+                        size: 36,
+                        font: "Microsoft JhengHei"
+                    })]
+                }));
+                
+                children.push(new Paragraph({
+                    children: [new TextRun({
+                        text: "輸出時間: " + new Date().toLocaleString('zh-TW'),
+                        size: 24,
+                        color: "666666",
+                        font: "Microsoft JhengHei"
+                    })],
+                    spacing: { after: 100 }
+                }));
+                
+                const llmName = getCurrentLLMName();
+                if (llmName) {
+                    children.push(new Paragraph({
+                        children: [new TextRun({
+                            text: "LLM模型：" + llmName,
+                            size: 24,
+                            color: "666666",
+                            font: "Microsoft JhengHei"
+                        })],
+                        spacing: { after: 400 }
+                    }));
+                }
+
+                let currentSpeaker = '';
+                let messageContent = [];
+                let inMessage = false;
+                let isUserBlock = false;
+
+                for (const line of lines) {
+                    if (line.trim() === "-------------------------------------") {
+                        if (inMessage) {
+                            children.push(new Paragraph({
+                                children: [new TextRun({
+                                    text: currentSpeaker,
+                                    bold: true,
+                                    size: 28,
+                                    font: "Microsoft JhengHei",
+                                    color: currentSpeaker === '用戶：' ? '022658' : undefined
+                                })]
+                            }));
+                            messageContent.forEach(function(content) {
+                                children.push(new Paragraph({
+                                    children: [new TextRun({
+                                        text: content,
+                                        size: 28,
+                                        font: "Microsoft JhengHei",
+                                        color: isUserBlock ? '022658' : undefined,
+                                        bold: isUserBlock ? true : undefined
+                                    })]
+                                }));
+                            });
+                            children.push(new Paragraph({
+                                thematicBreak: true,
+                                spacing: { before: 200, after: 200 }
+                            }));
+                            inMessage = false;
+                            currentSpeaker = '';
+                            messageContent = [];
+                            isUserBlock = false;
+                        }
+                        continue;
+                    }
+
+                    if (line.endsWith('：')) {
+                        if (inMessage) {
+                            children.push(new Paragraph({
+                                children: [new TextRun({
+                                    text: currentSpeaker,
+                                    bold: true,
+                                    size: 28,
+                                    font: "Microsoft JhengHei",
+                                    color: currentSpeaker === '用戶：' ? '022658' : undefined
+                                })]
+                            }));
+                            messageContent.forEach(function(content) {
+                                children.push(new Paragraph({
+                                    children: [new TextRun({
+                                        text: content,
+                                        size: 28,
+                                        font: "Microsoft JhengHei",
+                                        color: isUserBlock ? '022658' : undefined,
+                                        bold: isUserBlock ? true : undefined
+                                    })]
+                                }));
+                            });
+                            messageContent = [];
+                        }
+                        currentSpeaker = line;
+                        inMessage = true;
+                        isUserBlock = (line.trim() === '用戶：');
+                        continue;
+                    }
+
+                    if (inMessage && line.trim() !== '') {
+                        messageContent.push(line);
+                    }
+                }
+
+                if (inMessage && currentSpeaker) {
+                    children.push(new Paragraph({
+                        children: [new TextRun({
+                            text: currentSpeaker,
+                            bold: true,
+                            size: 28,
+                            font: "Microsoft JhengHei",
+                            color: currentSpeaker === '用戶：' ? '022658' : undefined
+                        })]
+                    }));
+                    messageContent.forEach(function(content) {
+                        children.push(new Paragraph({
+                            children: [new TextRun({
+                                text: content,
+                                size: 28,
+                                font: "Microsoft JhengHei",
+                                color: isUserBlock ? '022658' : undefined,
+                                bold: isUserBlock ? true : undefined
+                            })]
+                        }));
+                    });
+                }
+
+                children.push(new Paragraph({
+                    thematicBreak: true,
+                    spacing: { before: 200, after: 200 }
+                }));
+                
+                children.push(new Paragraph({
+                    children: [new TextRun({
+                        text: "回答僅供參考，請善盡查證義務，並遵循當地法律法規。",
+                        size: 20,
+                        color: "777777",
+                        font: "Microsoft JhengHei"
+                    })],
+                    alignment: "center",
+                    spacing: { before: 600 }
+                }));
+
+                const doc = new Document({
+                    sections: [{
+                        children: children
+                    }]
+                });
+
+                const blob = await Packer.toBlob(doc);
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = '建築技術規則AI聊天記錄_' + new Date().toISOString().slice(0, 10) + '.docx';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(function() {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    console.log('Word 檔案下載完成');
+                }, 100);
+
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('下載 Word 聊天記錄時發生錯誤：', error);
+                alert('無法生成 Word 檔案：' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+        
+        // 長截圖主入口函數
+        async function exportLongScreenshot() {
+            try {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.querySelector('.loading-text').textContent = '正在生成長截圖，請稍候...';
+                
+                const chatbotElement = document.querySelector('.custom-chatbot');
+                if (!chatbotElement || !chatbotElement.shadowRoot) {
+                    throw new Error('找不到聊天內容');
+                }
+                
+                console.log('=== 開始長截圖生成 ===');
+                const chatContainer = findChatContainer(chatbotElement.shadowRoot);
+                if (!chatContainer) {
+                    throw new Error('無法找到聊天內容容器');
+                }
+                
+                console.log('✓ 找到聊天容器');
+                await captureFullScreenshot(chatContainer);
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+                console.log('=== 長截圖生成完成 ===');
+                
+            } catch (error) {
+                console.error('長截圖生成錯誤：', error);
+                alert('長截圖生成失敗：' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        // 單次截圖主體
+        async function captureFullScreenshot(chatContainer) {
+            console.log('=== 單次截圖版本 ===');
+            
+            const viewportHeight = chatContainer.clientHeight;
+            const totalHeight = chatContainer.scrollHeight;
+            const totalWidth = chatContainer.clientWidth;
+            
+            const originalStyles = {
+                height: chatContainer.style.height,
+                maxHeight: chatContainer.style.maxHeight,
+                overflow: chatContainer.style.overflow,
+                overflowY: chatContainer.style.overflowY,
+                overflowX: chatContainer.style.overflowX
+            };
+            
+            const allElements = chatContainer.querySelectorAll('*');
+            const originalChildStyles = [];
+            
+            try {
+                console.log('修改容器樣式...');
+                
+                chatContainer.style.height = 'auto';
+                chatContainer.style.maxHeight = 'none';
+                chatContainer.style.overflow = 'visible';
+                chatContainer.style.overflowY = 'visible';
+                chatContainer.style.overflowX = 'visible';
+                
+                allElements.forEach(function(element, index) {
+                    const computedStyle = window.getComputedStyle(element);
+                    
+                    originalChildStyles[index] = {
+                        element: element,
+                        overflow: element.style.overflow,
+                        overflowY: element.style.overflowY,
+                        height: element.style.height,
+                        maxHeight: element.style.maxHeight
+                    };
+                    
+                    if (computedStyle.overflow === 'hidden' || 
+                        computedStyle.overflowY === 'hidden' ||
+                        (element.className && element.className.toString().indexOf('message') !== -1) ||
+                        (element.className && element.className.toString().indexOf('chat') !== -1) ||
+                        (element.className && element.className.toString().indexOf('bubble') !== -1)) {
+                        
+                        element.style.overflow = 'visible';
+                        element.style.overflowY = 'visible';
+                        element.style.height = 'auto';
+                        element.style.maxHeight = 'none';
+                    }
+                });
+                
+                await new Promise(function(resolve) { setTimeout(resolve, 1000); });
+                
+                const newHeight = chatContainer.scrollHeight;
+                const newWidth = chatContainer.scrollWidth;
+                
+                console.log('修改後尺寸:', { 
+                    scrollHeight: newHeight, 
+                    scrollWidth: newWidth 
+                });
+                
+                const canvas = await html2canvas(chatContainer, {
+                    allowTaint: true,
+                    useCORS: true,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: Math.max(newWidth, totalWidth),
+                    windowHeight: Math.max(newHeight, totalHeight),
+                    width: Math.max(newWidth, totalWidth),
+                    height: Math.max(newHeight, totalHeight),
+                    backgroundColor: '#202020',
+                    scale: 2,
+                    logging: false,
+                    removeContainer: false,
+                    foreignObjectRendering: true,
+                    imageTimeout: 15000,
+                    ignoreElements: function(element) {
+                        // 忽略載入失敗的圖片
+                        if (element.tagName === 'IMG') {
+                            return !element.complete || element.naturalWidth === 0;
+                        }
+                        return false;
+                    },
+                    onclone: function(clonedDoc, element) {
+                        console.log('🔧 開始處理 onclone...');
+                        
+                        element.style.height = 'auto';
+                        element.style.maxHeight = 'none';
+                        element.style.overflow = 'visible';
+                        element.style.overflowY = 'visible';
+                        element.style.overflowX = 'visible';
+                        
+                        const clonedElements = clonedDoc.querySelectorAll('*');
+                        clonedElements.forEach(function(el) {
+                            if (el.style.overflow === 'hidden' || el.style.overflowY === 'hidden') {
+                                el.style.overflow = 'visible';
+                                el.style.overflowY = 'visible';
+                            }
+                            if (el.style.height && el.style.height !== 'auto') {
+                                el.style.height = 'auto';
+                            }
+                            if (el.style.maxHeight && el.style.maxHeight !== 'none') {
+                                el.style.maxHeight = 'none';
+                            }
+                        });
+                        
+                        // 🔧 處理圖片問題 - 改良版
+                        const images = clonedDoc.querySelectorAll('img');
+                        console.log('找到圖片數量:', images.length);
+                        
+                        images.forEach(function(img, imgIndex) {
+                            console.log('處理圖片', imgIndex, ':', img.src);
+                            
+                            // 檢查圖片是否載入失敗或是頭像圖片
+                            const isAvatarImage = img.src && (
+                                img.src.includes('bot.png') || 
+                                img.src.includes('user.png') ||
+                                img.src.includes('avatar') ||
+                                img.src.includes('profile')
+                            );
+                            
+                            const isBrokenImage = !img.complete || 
+                                                img.naturalWidth === 0 || 
+                                                img.naturalHeight === 0;
+                            
+                            if (isAvatarImage || isBrokenImage) {
+                                console.log('需要替換的圖片:', {
+                                    src: img.src,
+                                    isAvatar: isAvatarImage,
+                                    isBroken: isBrokenImage,
+                                    complete: img.complete,
+                                    naturalWidth: img.naturalWidth
+                                });
+                                
+                                // 創建替代標籤
+                                const replacement = clonedDoc.createElement('span');
+                                
+                                if (isAvatarImage) {
+                                    // 判斷是機器人還是用戶頭像
+                                    const isBot = img.src.includes('bot.png') || 
+                                                 img.classList.contains('bot') ||
+                                                 (img.parentElement && img.parentElement.classList.contains('bot'));
+                                    
+                                    replacement.style.cssText = 
+                                        'display: inline-block; ' +
+                                        'padding: 4px 8px; ' +
+                                        'margin: 2px; ' +
+                                        'background-color: ' + (isBot ? '#4caf50' : '#2196f3') + '; ' +
+                                        'color: #111111 !important; ' +
+                                        'border: 1px solid ' + (isBot ? '#808080' : '#808080') + '; ' +
+                                        'border-radius: 4px; ' +
+                                        'font-size: 24px; ' +  // 🎯 修改字體大小：12px → 14px
+                                        'font-weight: bold; ' +
+                                        'font-family: Microsoft JhengHei, Arial, sans-serif; ' +
+                                        'vertical-align: middle; ' +
+                                        'min-width: 40px; ' +
+                                        'text-align: center;';
+                                    
+                                    replacement.textContent = isBot ? 'AI' : '用戶';
+                                    console.log('替換為:', replacement.textContent);
+                                } else {
+                                    // 一般破損圖片
+                                    replacement.style.cssText = 
+                                        'display: inline-block; ' +
+                                        'padding: 2px 6px; ' +
+                                        'background-color: #f0f0f0; ' +
+                                        'border: 1px solid #ddd; ' +
+                                        'border-radius: 3px; ' +
+                                        'font-size: 12px; ' +  // 🎯 一般圖片標籤字體大小
+                                        'color: #666; ' +      // 🎯 一般圖片標籤顏色
+                                        'font-family: Microsoft JhengHei, Arial, sans-serif;';
+                                    
+                                    replacement.textContent = '[圖片]';
+                                }
+                                
+                                // 替換圖片
+                                if (img.parentNode) {
+                                    try {
+                                        img.parentNode.replaceChild(replacement, img);
+                                        console.log('✓ 圖片替換成功');
+                                    } catch (e) {
+                                        console.error('圖片替換失敗:', e);
+                                        // 如果替換失敗，嘗試隱藏原圖片
+                                        img.style.display = 'none';
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // 處理 SVG 圖示
+                        const svgs = clonedDoc.querySelectorAll('svg');
+                        svgs.forEach(function(svg) {
+                            if (!svg.getAttribute('width') && !svg.style.width) {
+                                svg.style.width = '20px';
+                                svg.style.height = '20px';
+                            }
+                        });
+                        
+                        console.log('🔧 onclone 處理完成');
+                    }
+                });
+                
+                console.log('截圖成功！尺寸: ' + canvas.width + 'x' + canvas.height);
+                
+                const finalCanvas = addHeaderToCanvas(canvas);
+                await downloadCanvas(finalCanvas, '長截圖');
+                
+                console.log('✅ 截圖完成');
+                
+            } catch (error) {
+                console.error('截圖失敗:', error);
+                throw error;
+                
+            } finally {
+                console.log('恢復樣式...');
+                
+                Object.keys(originalStyles).forEach(function(key) {
+                    if (originalStyles[key]) {
+                        chatContainer.style[key] = originalStyles[key];
+                    } else {
+                        chatContainer.style.removeProperty(key.replace(/([A-Z])/g, '-$1').toLowerCase());
+                    }
+                });
+                
+                originalChildStyles.forEach(function(styleInfo, index) {
+                    if (styleInfo && styleInfo.element) {
+                        const el = styleInfo.element;
+                        el.style.overflow = styleInfo.overflow || '';
+                        el.style.overflowY = styleInfo.overflowY || '';
+                        el.style.height = styleInfo.height || '';
+                        el.style.maxHeight = styleInfo.maxHeight || '';
+                    }
+                });
+                
+                console.log('樣式恢復完成');
+            }
+        }
+
+        // 在 Shadow DOM 中尋找聊天容器
+        function findChatContainer(shadowRoot) {
+            const containerSelectors = [
+                '.overflow-y-auto',
+                '[role="log"]',
+                '.chat-messages',
+                '.messages-container',
+                '.relative.h-full',
+                'div[style*="overflow-y"]',
+                'div[style*="overflow: auto"]',
+                'div[class*="scroll"]',
+                'div[class*="chat"]',
+                'div[class*="message"]'
+            ];
+            
+            for (const selector of containerSelectors) {
+                const container = shadowRoot.querySelector(selector);
+                if (container) {
+                    console.log('使用選擇器找到容器:', selector);
+                    return container;
+                }
+            }
+            
+            const allDivs = shadowRoot.querySelectorAll('div');
+            for (const div of allDivs) {
+                const style = window.getComputedStyle(div);
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll' || 
+                    div.scrollHeight > div.clientHeight) {
+                    console.log('找到可滾動容器');
+                    return div;
+                }
+            }
+            
+            for (const div of allDivs) {
+                if (div.children.length > 0 && div.textContent.trim().length > 100) {
+                    console.log('使用有內容的 div 作為容器');
+                    return div;
+                }
+            }
+            
+            return null;
+        }
+
+        // 添加頁首信息到畫布
+        function addHeaderToCanvas(originalCanvas) {
+            const headerHeight = 200;
+            const padding = 20;
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = originalCanvas.width;
+            finalCanvas.height = originalCanvas.height + headerHeight;
+            
+            const ctx = finalCanvas.getContext('2d');
+            
+            ctx.fillStyle = '#202020';
+            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            // 第一行標題
+            ctx.font = 'bold 36px Microsoft JhengHei, Arial, sans-serif';
+            ctx.fillText('建築技術規則 @ 台中建管 AI 聊天記錄', padding, padding);
+    
+            // 第二行標題（副標題）
+            ctx.font = 'bold 28px Microsoft JhengHei, Arial, sans-serif';
+            ctx.fillText('(回答僅供參考，請善盡查證義務，並遵循當地法律法規。)', padding, padding + 45);
+    
+            ctx.font = '28px Microsoft JhengHei, Arial, sans-serif';
+            ctx.fillStyle = '#888888';
+            const timestamp = new Date().toLocaleString('zh-TW');
+            ctx.fillText('輸出時間: ' + timestamp, padding, padding + 85);
+            
+            const llmName = getCurrentLLMName();
+            if (llmName) {
+                ctx.fillText('LLM模型: ' + llmName, padding, padding + 120);
+            }
+            
+            ctx.strokeStyle = '#dddddd';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, headerHeight - 0);
+            ctx.lineTo(finalCanvas.width - padding, headerHeight - 10);
+            ctx.stroke();
+            
+            ctx.drawImage(originalCanvas, 0, headerHeight);
+            
+            return finalCanvas;
+        }
+
+        // 下載畫布為圖片
+        async function downloadCanvas(canvas, suffix) {
+            return new Promise(function(resolve) {
+                canvas.toBlob(function(blob) {
+                    const link = document.createElement('a');
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    link.download = '建築技術規則AI聊天' + (suffix || '') + '_' + timestamp + '.png';
+                    link.href = URL.createObjectURL(blob);
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    setTimeout(function() {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(link.href);
+                        console.log((suffix || '') + '下載完成');
+                        resolve();
+                    }, 100);
+                }, 'image/png', 1.0);
+            });
+        }
+
+        // DOMContentLoaded 事件監聽器
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveButton = document.getElementById('saveButton');
+            const exportDialog = document.getElementById('exportDialog');
+            const saveTxtButton = document.getElementById('saveTxtButton');
+            const savePdfButton = document.getElementById('savePdfButton');
+            const saveWordButton = document.getElementById('saveWordButton');
+            const saveLongScreenshotButton = document.getElementById('saveLongScreenshotButton');
+            
+            saveButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                exportDialog.style.display = exportDialog.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!saveButton.contains(e.target) && !exportDialog.contains(e.target)) {
+                    exportDialog.style.display = 'none';
+                }
+            });
+            
+            saveTxtButton.addEventListener('click', function() {
+                exportToTxt();
+                exportDialog.style.display = 'none';
+            });
+            
+            savePdfButton.addEventListener('click', function() {
+                exportToPdf();
+                exportDialog.style.display = 'none';
+            });
+            
+            saveWordButton.addEventListener('click', function() {
+                exportToWord();
+                exportDialog.style.display = 'none';
+            });
+            
+            saveLongScreenshotButton.addEventListener('click', function() {
+                exportLongScreenshot();
+                exportDialog.style.display = 'none';
+            });
+        });
+    </script>
+
+    <script type="module">
+        import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
+        
+        Chatbot.initFull({
+            chatflowid: CHATBOT_CONFIG.chatflowId,
+            apiHost: CHATBOT_CONFIG.apiHost,
+            theme: {                            
+                chatWindow: {
+                    showTitle: true,
+                    backgroundColor: 'transparent',
+                    welcomeMessage: CHATBOT_CONFIG.welcomeMessage,
+                    fontSize: 22,
+                    renderHTML: true,
+                    botMessage: {
+                        backgroundColor: CHATBOT_CONFIG.colors.botBubble,
+                        textColor: CHATBOT_CONFIG.colors.botText,
+                        showAvatar: CHATBOT_CONFIG.avatars.showBotAvatar,
+                        avatarSrc: CHATBOT_CONFIG.avatars.bot
+                    },
+                    userMessage: {
+                        backgroundColor: CHATBOT_CONFIG.colors.userBubble,
+                        textColor: CHATBOT_CONFIG.colors.userText,
+                        showAvatar: CHATBOT_CONFIG.avatars.showUserAvatar,
+                        avatarSrc: CHATBOT_CONFIG.avatars.user
+                    },
+                    titleBackgroundColor: 'transparent',
+                    titleTextColor: '#000000',
+                    textInput: {
+                        placeholder: '請輸入您的問題',
+                        backgroundColor: '#ffffff',
+                        textColor: '#303235',
+                        autoFocus: true
+                    }
+                },
+                footer: {
+                    text: ''
+                }
+            },
+            customCSS: ''
+        })
+    </script>
+</body>
+</html>
