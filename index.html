@@ -805,11 +805,18 @@
                     console.log('偵測到帳號切換，清除舊資料');
                     // 清除舊的用戶資料
                     window.userData = null;
-                    
                     // 更新顯示
                     updateUsageDisplay();
                 }
-                
+
+                // 偵測到登入時關閉聊天視窗的紅色警告
+                try {
+                    const chatFrame = document.getElementById("chatFrame");
+                    if (chatFrame && chatFrame.contentWindow) {
+                        chatFrame.contentWindow.postMessage({ type: "clearUsageWarning" }, "*");
+                    }
+                } catch(e) {}
+
                 window.currentUser = user;
                 console.log('設定當前用戶:', user.email);
                 
