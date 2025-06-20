@@ -365,121 +365,166 @@
             }
         });
         
-        // 次數檢查函數
+        // ====== 新版次數檢查與 AI 回應監聽邏輯 ======
+        // 簡化的次數檢查（不扣除）
         async function checkUsageLimit() {
+            console.log('=== 檢查是否有足夠次數 ===');
             try {
-                // 從父窗口獲取 consumeQuestion 函數
-                if (window.parent && typeof window.parent.consumeQuestion === 'function') {
-                    const canProceed = await window.parent.consumeQuestion();
-                    if (!canProceed) {
+                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                    const result = await window.parent.checkQuestionLimit();
+                    if (!result) {
                         showUsageWarning();
                         return false;
                     }
                     return true;
                 } else {
-                    console.warn('無法取得次數檢查函數，允許繼續操作');
+                    console.warn('⚠️ 無法取得次數檢查函數，允許繼續操作');
                     return true;
                 }
             } catch (error) {
-                console.error('檢查使用次數時發生錯誤:', error);
-                // 如果檢查失敗，允許繼續操作以避免阻斷服務
+                console.error('❌ 檢查使用次數時發生錯誤:', error);
                 return true;
             }
         }
 
-        // 顯示次數用完警告
-        function showUsageWarning() {
-            document.getElementById('usageWarning').style.display = 'block';
+        // 新增：監聽 AI 回應的函數
+        function setupResponseMonitor() {
+            const chatbotElement = document.querySelector('.custom-chatbot');
+            if (!chatbotElement || !chatbotElement.shadowRoot) {
+                setTimeout(setupResponseMonitor, 1000);
+                return;
+            }
+
+            console.log('🔧 設置 AI 回應監聽器');
+            
+            // 監聽聊天容器的變化
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // 檢查是否有新的 AI 訊息
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                checkForNewAIMessage(node);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // 開始觀察聊天容器
+            const chatContainer = findChatContainer(chatbotElement.shadowRoot);
+            if (chatContainer) {
+                observer.observe(chatContainer, {
+                    childList: true,
+                    subtree: true
+                });
+                console.log('✅ AI 回應監聽器設置完成');
+            }
         }
 
-        // 關閉次數警告
-        window.closeUsageWarning = function() {
-            document.getElementById('usageWarning').style.display = 'none';
-        };
+        // 檢查是否有新的 AI 訊息
+        function checkForNewAIMessage(node) {
+            // 檢查是否包含 AI 訊息的特徵
+            const aiMessageSelectors = [
+                '[class*="bot"]',
+                '[class*="ai"]',
+                '[class*="assistant"]',
+                '.message:not([class*="user"])'
+            ];
+            
+            let isAIMessage = false;
+            
+            // 檢查節點本身
+            for (const selector of aiMessageSelectors) {
+                if (node.matches && node.matches(selector)) {
+                    isAIMessage = true;
+                    break;
+                }
+            }
+            
+            // 檢查子節點
+            if (!isAIMessage) {
+                for (const selector of aiMessageSelectors) {
+                    if (node.querySelector && node.querySelector(selector)) {
+                        isAIMessage = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 檢查文字內容（簡單啟發式）
+            if (!isAIMessage && node.textContent) {
+                const text = node.textContent.trim();
+                // 如果文字長度合理且不是用戶輸入，可能是 AI 回應
+                if (text.length > 10 && !text.startsWith('請輸入') && !text.includes('正在輸入')) {
+                    isAIMessage = true;
+                }
+            }
+            
+            if (isAIMessage) {
+                console.log('🎯 偵測到新的 AI 回應，準備扣除次數');
+                console.log('回應內容預覽:', node.textContent?.substring(0, 100) + '...');
+                
+                // 延遲一下確保回應完全載入
+                setTimeout(() => {
+                    consumeQuestionAfterResponse();
+                }, 1000);
+            }
+        }
 
-        // 攔截輸入送出事件的函數
+        // 扣除次數（收到回應後）
+        async function consumeQuestionAfterResponse() {
+            console.log('=== AI 已回應，扣除問題次數 ===');
+            try {
+                if (window.parent && typeof window.parent.consumeQuestionAfterResponse === 'function') {
+                    const result = await window.parent.consumeQuestionAfterResponse();
+                    console.log('次數扣除結果:', result);
+                } else {
+                    console.warn('⚠️ 無法取得次數扣除函數');
+                }
+            } catch (error) {
+                console.error('❌ 扣除次數時發生錯誤:', error);
+            }
+        }
+
+        // 簡化的攔截器 - 只檢查次數，不扣除
         function interceptChatInput() {
             const chatbotElement = document.querySelector('.custom-chatbot');
             if (!chatbotElement || !chatbotElement.shadowRoot) {
-                console.log('聊天機器人尚未載入，稍後重試...');
                 setTimeout(interceptChatInput, 1000);
                 return;
             }
 
-            // 尋找輸入區域和發送按鈕
             const shadowRoot = chatbotElement.shadowRoot;
             const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
-            const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"]');
             
-            if (inputElement) {
-                console.log('找到輸入框，設置攔截器');
+            if (inputElement && !inputElement.hasUsageChecker) {
+                console.log('🔧 設置輸入框攔截器（僅檢查次數）');
+                inputElement.hasUsageChecker = true;
                 
-                // 攔截 Enter 鍵
                 inputElement.addEventListener('keydown', async function(e) {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         const messageText = inputElement.value.trim();
                         if (messageText) {
-                            e.preventDefault();
-                            e.stopPropagation();
+                            console.log('🎯 準備發送訊息:', messageText);
                             
-                            const canProceed = await checkUsageLimit();
-                            if (canProceed) {
-                                // 允許發送，手動觸發原始事件
-                                const originalEvent = new KeyboardEvent('keydown', {
-                                    key: 'Enter',
-                                    bubbles: true,
-                                    cancelable: true
-                                });
-                                
-                                // 暫時移除我們的監聽器
-                                inputElement.removeEventListener('keydown', arguments.callee);
-                                inputElement.dispatchEvent(originalEvent);
-                                
-                                // 重新添加監聽器
-                                setTimeout(() => {
-                                    inputElement.addEventListener('keydown', arguments.callee);
-                                }, 100);
+                            // 只檢查次數，不扣除
+                            const hasQuestions = await checkUsageLimit();
+                            if (!hasQuestions) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('❌ 次數不足，阻止發送');
+                                return;
                             }
+                            
+                            console.log('✅ 次數足夠，允許發送（稍後收到回應時才扣除）');
+                            // 讓訊息正常發送，不阻止
                         }
                     }
-                }, true); // 使用捕獲階段
+                }, true);
             }
 
-            if (sendButton) {
-                console.log('找到發送按鈕，設置攔截器');
-                
-                sendButton.addEventListener('click', async function(e) {
-                    const inputEl = shadowRoot.querySelector('input[type="text"], textarea');
-                    const messageText = inputEl ? inputEl.value.trim() : '';
-                    
-                    if (messageText) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const canProceed = await checkUsageLimit();
-                        if (canProceed) {
-                            // 允許發送，手動觸發原始事件
-                            const originalEvent = new MouseEvent('click', {
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            
-                            // 暫時移除我們的監聽器
-                            sendButton.removeEventListener('click', arguments.callee);
-                            sendButton.dispatchEvent(originalEvent);
-                            
-                            // 重新添加監聽器
-                            setTimeout(() => {
-                                sendButton.addEventListener('click', arguments.callee);
-                            }, 100);
-                        }
-                    }
-                }, true); // 使用捕獲階段
-            }
-
-            // 如果沒找到元素，繼續重試
-            if (!inputElement && !sendButton) {
-                console.log('未找到輸入元素，繼續重試...');
+            if (!inputElement) {
                 setTimeout(interceptChatInput, 1000);
             }
         }
@@ -1388,13 +1433,4 @@
         })
     </script>
 </body>
-</html>(new Paragraph({
-                    children: [new TextRun({
-                        text: "建築技術規則 @ 台中建管 AI 聊天記錄",
-                        bold: true,
-                        size: 36,
-                        font: "Microsoft JhengHei"
-                    })]
-                }));
-                
-                children.push
+</html>
