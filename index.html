@@ -647,6 +647,11 @@
         </div>
     </div>
 
+    <!-- 備用監控系統 -->
+    <div id="usageWarning" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:20000;background:linear-gradient(145deg,#fed7d7,#feb2b2);color:#742a2a;padding:12px 24px;border-radius:16px;font-size:18px;font-weight:bold;box-shadow:0 8px 24px rgba(0,0,0,0.18);border:2px solid #e53e3e;">
+        ⚠️ 您的提問次數已用完，請明日再試或聯絡管理員。
+    </div>
+
     <!-- Firebase 和應用邏輯 -->
     <script type="module">
         // Firebase 配置和初始化
@@ -1520,6 +1525,230 @@
                 resetTutorial();
             }
         });
+    </script>
+
+    <script>
+    // 1. 備用監控系統 - 防止手機版攔截失敗
+    let lastQuestionTime = 0;
+    let lastChatLength = 0;
+    let monitoringActive = false;
+    const DUPLICATE_THRESHOLD = 2000; // 2秒內的重複問題視為同一個
+
+    // 2. 增強版 userQuestion 訊息處理
+    window.addEventListener('message', function(event) {
+        // 原有的 userQuestion 處理
+        if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
+            const now = Date.now();
+            const attempt = event.data.attempt || 1;
+            // 防重複檢查
+            if (now - lastQuestionTime < DUPLICATE_THRESHOLD) {
+                console.log('⚠️ 重複問題，忽略 (間隔:', now - lastQuestionTime, 'ms)');
+                return;
+            }
+            lastQuestionTime = now;
+            console.log(`🎯 收到用戶問題 (嘗試 ${attempt}):`, event.data.question.substring(0, 30) + '...');
+            window.consumeQuestionCredit(event.data.question);
+        }
+        // 處理顯示警告訊息
+        if (event.data && event.data.type === "showUsageWarning") {
+            document.getElementById('usageWarning').style.display = 'block';
+        }
+        // 處理清除警告訊息
+        if (event.data && event.data.type === "clearUsageWarning") {
+            document.getElementById('usageWarning').style.display = 'none';
+        }
+        // 處理檢查警告狀態
+        if (event.data && event.data.type === "checkUsageWarning") {
+            if (window.currentUser && typeof window.checkQuestionLimit === 'function') {
+                window.checkQuestionLimit().then(hasCredit => {
+                    if (!hasCredit) {
+                        document.getElementById('usageWarning').style.display = 'block';
+                    } else {
+                        document.getElementById('usageWarning').style.display = 'none';
+                    }
+                });
+            }
+        }
+    });
+
+    // 3. 備用監控機制 - 監控聊天內容變化
+    function startChatMonitoring() {
+        if (monitoringActive) return;
+        monitoringActive = true;
+        console.log('🔍 啟動備用聊天監控機制');
+        function monitorChatChanges() {
+            if (!window.currentUser) {
+                setTimeout(monitorChatChanges, 3000);
+                return;
+            }
+            try {
+                const chatFrame = document.getElementById('chatFrame');
+                if (!chatFrame || !chatFrame.contentWindow) {
+                    setTimeout(monitorChatChanges, 2000);
+                    return;
+                }
+                const chatDoc = chatFrame.contentDocument || chatFrame.contentWindow.document;
+                const chatbot = chatDoc.querySelector('.custom-chatbot');
+                if (chatbot && chatbot.shadowRoot) {
+                    // 尋找用戶訊息（多種可能的 class 名稱）
+                    const userMessageSelectors = [
+                        '[data-role="user"]',
+                        '.user-message',
+                        '.message-user',
+                        '.message[data-type="user"]',
+                        '.chat-message-user',
+                        '[class*="user"]'
+                    ];
+                    let userMessages = [];
+                    for (const selector of userMessageSelectors) {
+                        const found = chatbot.shadowRoot.querySelectorAll(selector);
+                        if (found.length > 0) {
+                            userMessages = Array.from(found);
+                            break;
+                        }
+                    }
+                    // 檢查是否有新訊息
+                    if (userMessages.length > lastChatLength) {
+                        const newMessages = userMessages.slice(lastChatLength);
+                        newMessages.forEach(msgElement => {
+                            const messageText = msgElement.textContent || msgElement.innerText;
+                            if (messageText && messageText.trim()) {
+                                const cleanText = messageText.trim();
+                                // 避免處理重複訊息
+                                const now = Date.now();
+                                if (now - lastQuestionTime < DUPLICATE_THRESHOLD) {
+                                    return;
+                                }
+                                console.log('🔍 備用監控檢測到新用戶訊息:', cleanText.substring(0, 30) + '...');
+                                lastQuestionTime = now;
+                                // 記錄問題
+                                if (typeof window.consumeQuestionCredit === 'function') {
+                                    window.consumeQuestionCredit(cleanText);
+                                }
+                            }
+                        });
+                        lastChatLength = userMessages.length;
+                    }
+                }
+            } catch (e) {
+                // 靜默處理錯誤，避免 console 被spam
+            }
+            // 每2秒檢查一次
+            setTimeout(monitorChatChanges, 2000);
+        }
+        // 延遲啟動，確保用戶已登入
+        setTimeout(monitorChatChanges, 5000);
+    }
+
+    // 4. 檢測是否為手機設備
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+            || window.innerWidth <= 768;
+    }
+
+    // 5. 手機版特殊處理
+    function setupMobileSpecificHandling() {
+        if (!isMobileDevice()) return;
+        console.log('📱 設置手機版特殊處理');
+        // 手機版延長各種等待時間
+        const originalSetTimeout = window.setTimeout;
+        // 監聽 iframe 載入事件
+        const chatFrame = document.getElementById('chatFrame');
+        if (chatFrame) {
+            chatFrame.addEventListener('load', function() {
+                console.log('📱 手機版 chatFrame 載入完成');
+                // 給手機版更多時間初始化
+                setTimeout(() => {
+                    // 向 iframe 發送初始化完成訊息
+                    try {
+                        chatFrame.contentWindow.postMessage({
+                            type: 'parentReady',
+                            isMobile: true
+                        }, '*');
+                    } catch (e) {
+                        console.log('📱 無法發送 parentReady 訊息:', e);
+                    }
+                }, 3000);
+            });
+        }
+        // 手機版觸摸優化
+        document.addEventListener('touchstart', function() {
+            // 喚醒可能休眠的事件監聽器
+        }, { passive: true });
+    }
+
+    // 6. 強化版認證狀態監聽
+    const originalAuthStateListener = onAuthStateChanged;
+    if (originalAuthStateListener) {
+        onAuthStateChanged(auth, async (user) => {
+            console.log('=== 認證狀態變化（增強版） ===');
+            console.log('用戶:', user ? user.email : '未登入');
+            console.log('設備類型:', isMobileDevice() ? '手機' : '桌機');
+            if (user) {
+                window.currentUser = user;
+                // 載入用戶資料
+                await loadUserData(user.uid);
+                await checkDailyReset(user.uid);
+                // 啟動備用監控（特別重要給手機版）
+                startChatMonitoring();
+                // 手機版特殊處理
+                setupMobileSpecificHandling();
+                // 通知 chatFrame
+                setTimeout(() => {
+                    try {
+                        const chatFrame = document.getElementById("chatFrame");
+                        if (chatFrame && chatFrame.contentWindow) {
+                            chatFrame.contentWindow.postMessage({ 
+                                type: "clearUsageWarning" 
+                            }, "*");
+                            setTimeout(() => {
+                                chatFrame.contentWindow.postMessage({ 
+                                    type: "checkUsageWarning" 
+                                }, "*");
+                            }, 1000);
+                        }
+                    } catch(e) {
+                        console.log('無法與 chatFrame 通訊:', e);
+                    }
+                }, 2000);
+                // 顯示主要內容
+                showMainContent();
+                console.log('✅ 用戶載入完成，監控系統已啟動');
+            } else {
+                console.log('用戶登出，停止監控');
+                monitoringActive = false;
+                window.currentUser = null;
+                window.userData = null;
+                showAuthOverlay();
+            }
+        });
+    }
+
+    // 7. 全局錯誤處理
+    window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('postMessage')) {
+            console.log('⚠️ postMessage 相關錯誤，這在手機版很常見:', e.message);
+        }
+    });
+
+    // 8. 視窗焦點處理（手機版重要）
+    window.addEventListener('focus', function() {
+        if (isMobileDevice() && window.currentUser) {
+            // 手機版重新獲得焦點時，重新檢查狀態
+            setTimeout(() => {
+                if (typeof window.checkQuestionLimit === 'function') {
+                    window.checkQuestionLimit().then(hasCredit => {
+                        const warningEl = document.getElementById('usageWarning');
+                        if (warningEl) {
+                            warningEl.style.display = hasCredit ? 'none' : 'block';
+                        }
+                    });
+                }
+            }, 1000);
+        }
+    });
+
+    console.log('🔧 備用監控機制已設置完成');
     </script>
 </body>
 </html>
