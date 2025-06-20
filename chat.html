@@ -206,49 +206,51 @@
         /* 次數警告樣式 */
         .usage-warning {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            right: 24px;
+            bottom: 16px;
+            left: auto;
+            top: auto;
+            transform: none;
+            z-index: 3000;
+            max-width: 350px;
+            min-width: 260px;
+            width: 100%;
             background: linear-gradient(145deg, #fed7d7, #feb2b2);
             color: #742a2a;
-            padding: 25px 30px;
+            padding: 24px 24px 22px 20px;
             border-radius: 15px;
             border: 3px solid #e53e3e;
-            box-shadow: 0 10px 30px rgba(229, 62, 62, 0.3);
-            z-index: 3000;
-            text-align: center;
+            box-shadow: 0 10px 30px rgba(229,62,62,0.3);
+            text-align: left;
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
-            max-width: 400px;
-            width: 90%;
+            font-size: 17px;
+            pointer-events: auto;
         }
-
         .usage-warning h3 {
-            margin: 0 0 15px 0;
-            font-size: 20px;
+            margin: 0 0 12px 0;
+            font-size: 19px;
             color: #742a2a;
         }
-
         .usage-warning p {
-            margin: 0 0 20px 0;
-            line-height: 1.5;
-            font-size: 16px;
+            margin: 0;
+            line-height: 1.6;
+            font-size: 15px;
         }
-
+        /* 移除/覆蓋按鈕 */
         .usage-warning button {
-            background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
-            color: #4a5568;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            display: none !important;
         }
-
-        .usage-warning button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        @media (max-width: 768px) {
+            .usage-warning {
+                right: 4vw;
+                left: auto;
+                bottom: 9vw;
+                padding: 12px 10px 12px 12px;
+                max-width: 90vw;
+                font-size: 13px;
+            }
+            .usage-warning h3 { font-size: 16px;}
+            .usage-warning p { font-size: 13px;}
         }
     </style>
 </head>
@@ -284,7 +286,6 @@
     <div class="usage-warning" id="usageWarning" style="display: none;">
         <h3>⚠️ 今日問題次數已用完</h3>
         <p>您今日的問題次數已經用完。<br>請明天再來，或聯絡管理員增加額外次數。</p>
-        <button onclick="closeUsageWarning()">我知道了</button>
     </div>
     
     <div id="pdf-content"></div>
