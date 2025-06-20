@@ -863,6 +863,8 @@
                 showMainContent();
                 
                 console.log('用戶載入完成:', window.userData);
+                // ===== 啟動 LocalStorage 監聽器 =====
+                setupStorageListener();
             } else {
                 console.log('用戶登出，清除資料');
                 window.currentUser = null;
@@ -1175,6 +1177,44 @@
                 window.consumeQuestionCredit(event.data.question);
             }
         });
+
+        // ===== 步驟 2：LocalStorage 監聽邏輯 =====
+        // 1. 定義與 iframe 約定好的鍵名
+        const STORAGE_KEY = 'new_user_question';
+
+        // 2. 設定 storage 事件監聽器
+        function setupStorageListener() {
+            window.addEventListener('storage', (event) => {
+                // 確認是我們約定好的鍵，並且有新的值
+                if (event.key === STORAGE_KEY && event.newValue) {
+                    console.log('📬 收到來自 LocalStorage 的新問題通知');
+                    try {
+                        const payload = JSON.parse(event.newValue);
+                        if (payload && payload.question) {
+                            // 執行核心的扣點與記錄邏輯
+                            window.consumeQuestionCredit(payload.question);
+                        }
+                    } catch (error) {
+                        console.error('❌ 解析 LocalStorage 資料失敗:', error);
+                    } finally {
+                        // *** 關鍵步驟 ***：
+                        // 無論成功與否，都立即清除這個鍵，防止重複處理
+                        localStorage.removeItem(STORAGE_KEY);
+                        console.log('🧹 已清理 LocalStorage 鍵值');
+                    }
+                }
+            });
+            // 處理頁面剛載入時可能殘留的舊資料
+            const residualData = localStorage.getItem(STORAGE_KEY);
+            if (residualData) {
+                console.warn('⚠️ 發現上次殘留的問題，將進行處理...');
+                // 手動觸發一次處理流程
+                const manualEvent = { key: STORAGE_KEY, newValue: residualData };
+                // 模擬事件觸發
+                window.dispatchEvent(new StorageEvent('storage', manualEvent));
+            }
+            console.log('🎧 LocalStorage 監聽器已啟動');
+        }
     </script>
 
     <script>
@@ -1714,6 +1754,8 @@
                 // 顯示主要內容
                 showMainContent();
                 console.log('✅ 用戶載入完成，監控系統已啟動');
+                // ===== 啟動 LocalStorage 監聽器 =====
+                setupStorageListener();
             } else {
                 console.log('用戶登出，停止監控');
                 monitoringActive = false;
