@@ -366,149 +366,222 @@
         });
         
         // ====== 新版次數檢查與 AI 回應監聽邏輯 ======
-        // 簡化的次數檢查（不扣除）
-        async function checkUsageLimit() {
-            console.log('=== 檢查是否有足夠次數 ===');
-            try {
-                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                    const result = await window.parent.checkQuestionLimit();
-                    if (!result) {
-                        showUsageWarning();
-                        return false;
-                    }
-                    return true;
-                } else {
-                    console.warn('⚠️ 無法取得次數檢查函數，允許繼續操作');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ 檢查使用次數時發生錯誤:', error);
-                return true;
-            }
+        // 全局變數來追蹤狀態
+        let lastMessageCount = 0;
+        let isWaitingForResponse = false;
+        let responseCheckInterval = null;
+
+        // 改進的回應監聽器 - 使用多種策略
+        function setupResponseMonitor() {
+            console.log('🔧 設置 AI 回應監聽器（多策略）');
+            // 策略1: 定時檢查訊息數量變化
+            setupMessageCountMonitor();
+            // 策略2: DOM 變化監聽
+            setupDOMChangeMonitor();
+            // 策略3: 定時掃描新訊息
+            setupPeriodicScan();
         }
 
-        // 新增：監聽 AI 回應的函數
-        function setupResponseMonitor() {
+        // 策略1: 監聽訊息數量變化
+        function setupMessageCountMonitor() {
+            setInterval(() => {
+                if (!isWaitingForResponse) return;
+                const chatbotElement = document.querySelector('.custom-chatbot');
+                if (!chatbotElement?.shadowRoot) return;
+                const messageElements = getAllMessageElements(chatbotElement.shadowRoot);
+                const currentCount = messageElements.length;
+                if (currentCount > lastMessageCount) {
+                    console.log('📊 訊息數量增加:', lastMessageCount, '→', currentCount);
+                    // 檢查最新的訊息是否為 AI 回應
+                    const latestMessages = messageElements.slice(lastMessageCount);
+                    for (const msg of latestMessages) {
+                        if (isAIMessage(msg)) {
+                            console.log('🎯 透過訊息計數偵測到 AI 回應');
+                            handleAIResponse(msg);
+                            break;
+                        }
+                    }
+                    lastMessageCount = currentCount;
+                }
+            }, 1000);
+        }
+
+        // 策略2: DOM 變化監聽
+        function setupDOMChangeMonitor() {
             const chatbotElement = document.querySelector('.custom-chatbot');
-            if (!chatbotElement || !chatbotElement.shadowRoot) {
-                setTimeout(setupResponseMonitor, 1000);
+            if (!chatbotElement?.shadowRoot) {
+                setTimeout(setupDOMChangeMonitor, 1000);
                 return;
             }
-
-            console.log('🔧 設置 AI 回應監聽器');
-            
-            // 監聽聊天容器的變化
+            const chatContainer = findChatContainer(chatbotElement.shadowRoot);
+            if (!chatContainer) {
+                setTimeout(setupDOMChangeMonitor, 1000);
+                return;
+            }
             const observer = new MutationObserver(function(mutations) {
+                if (!isWaitingForResponse) return;
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                        // 檢查是否有新的 AI 訊息
                         mutation.addedNodes.forEach(function(node) {
-                            if (node.nodeType === Node.ELEMENT_NODE) {
-                                checkForNewAIMessage(node);
+                            if (node.nodeType === Node.ELEMENT_NODE && isAIMessage(node)) {
+                                console.log('🎯 透過 DOM 變化偵測到 AI 回應');
+                                handleAIResponse(node);
                             }
                         });
                     }
+                    // 也檢查文字內容變化
+                    if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                        const target = mutation.target;
+                        if (target && isAIMessage(target)) {
+                            console.log('🎯 透過內容變化偵測到 AI 回應');
+                            handleAIResponse(target);
+                        }
+                    }
                 });
             });
-
-            // 開始觀察聊天容器
-            const chatContainer = findChatContainer(chatbotElement.shadowRoot);
-            if (chatContainer) {
-                observer.observe(chatContainer, {
-                    childList: true,
-                    subtree: true
-                });
-                console.log('✅ AI 回應監聽器設置完成');
-            }
+            observer.observe(chatContainer, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+            console.log('✅ DOM 變化監聽器設置完成');
         }
 
-        // 檢查是否有新的 AI 訊息
-        function checkForNewAIMessage(node) {
-            // 檢查是否包含 AI 訊息的特徵
-            const aiMessageSelectors = [
-                '[class*="bot"]',
-                '[class*="ai"]',
-                '[class*="assistant"]',
-                '.message:not([class*="user"])'
-            ];
-            
-            let isAIMessage = false;
-            
-            // 檢查節點本身
-            for (const selector of aiMessageSelectors) {
-                if (node.matches && node.matches(selector)) {
-                    isAIMessage = true;
-                    break;
-                }
-            }
-            
-            // 檢查子節點
-            if (!isAIMessage) {
-                for (const selector of aiMessageSelectors) {
-                    if (node.querySelector && node.querySelector(selector)) {
-                        isAIMessage = true;
+        // 策略3: 定時掃描
+        function setupPeriodicScan() {
+            setInterval(() => {
+                if (!isWaitingForResponse) return;
+                const chatbotElement = document.querySelector('.custom-chatbot');
+                if (!chatbotElement?.shadowRoot) return;
+                // 掃描所有訊息，尋找新的 AI 回應
+                const allMessages = getAllMessageElements(chatbotElement.shadowRoot);
+                const recentMessages = allMessages.slice(-3); // 檢查最近3則訊息
+                for (const msg of recentMessages) {
+                    if (isAIMessage(msg) && !msg.hasAttribute('data-processed')) {
+                        console.log('🎯 透過定時掃描偵測到 AI 回應');
+                        msg.setAttribute('data-processed', 'true');
+                        handleAIResponse(msg);
                         break;
                     }
                 }
-            }
-            
-            // 檢查文字內容（簡單啟發式）
-            if (!isAIMessage && node.textContent) {
-                const text = node.textContent.trim();
-                // 如果文字長度合理且不是用戶輸入，可能是 AI 回應
-                if (text.length > 10 && !text.startsWith('請輸入') && !text.includes('正在輸入')) {
-                    isAIMessage = true;
-                }
-            }
-            
-            if (isAIMessage) {
-                console.log('🎯 偵測到新的 AI 回應，準備扣除次數');
-                console.log('回應內容預覽:', node.textContent?.substring(0, 100) + '...');
-                
-                // 延遲一下確保回應完全載入
-                setTimeout(() => {
-                    consumeQuestionAfterResponse();
-                }, 1000);
-            }
+            }, 2000);
         }
 
-        // 扣除次數（收到回應後）
-        async function consumeQuestionAfterResponse() {
-            console.log('=== AI 已回應，扣除問題次數 ===');
-            try {
-                if (window.parent && typeof window.parent.consumeQuestionAfterResponse === 'function') {
-                    const result = await window.parent.consumeQuestionAfterResponse();
-                    console.log('次數扣除結果:', result);
-                } else {
-                    console.warn('⚠️ 無法取得次數扣除函數');
+        // 獲取所有訊息元素
+        function getAllMessageElements(shadowRoot) {
+            const selectors = [
+                '[class*="message"]',
+                '[class*="chat"]',
+                '[role="log"] > *',
+                '.flex.items-start',
+                'div[class*="bubble"]',
+                'div[class*="response"]'
+            ];
+            let allMessages = [];
+            for (const selector of selectors) {
+                const messages = Array.from(shadowRoot.querySelectorAll(selector));
+                if (messages.length > 0) {
+                    allMessages = messages;
+                    break;
                 }
-            } catch (error) {
-                console.error('❌ 扣除次數時發生錯誤:', error);
             }
+            return allMessages;
         }
 
-        // 簡化的攔截器 - 只檢查次數，不扣除
+        // 改進的 AI 訊息判斷
+        function isAIMessage(element) {
+            if (!element || !element.textContent) return false;
+            const text = element.textContent.trim();
+            if (text.length < 5) return false; // 太短不算
+            // 檢查 CSS 類名
+            const className = element.className || '';
+            const isBot = className.includes('bot') || 
+                          className.includes('ai') || 
+                          className.includes('assistant') ||
+                          className.includes('system');
+            const isUser = className.includes('user') || 
+                           className.includes('human') ||
+                           className.includes('customer');
+            // 如果明確標示為 bot 訊息
+            if (isBot && !isUser) {
+                console.log('✓ 透過 CSS 類名判斷為 AI 訊息');
+                return true;
+            }
+            // 檢查父元素
+            let parent = element.parentElement;
+            while (parent) {
+                const parentClass = parent.className || '';
+                if (parentClass.includes('bot') && !parentClass.includes('user')) {
+                    console.log('✓ 透過父元素類名判斷為 AI 訊息');
+                    return true;
+                }
+                parent = parent.parentElement;
+            }
+            // 檢查內容特徵（啟發式判斷）
+            const aiIndicators = [
+                '根據', '依據', '建議', '建築技術規則', '條文', '法規',
+                '您好', '可以', '應該', '需要', '規定', '辦法'
+            ];
+            const hasAIFeatures = aiIndicators.some(indicator => text.includes(indicator));
+            // 檢查是否為用戶輸入的特徵
+            const userIndicators = [
+                '請問', '我想', '如何', '什麼', '？', '請告訴我'
+            ];
+            const hasUserFeatures = userIndicators.some(indicator => text.includes(indicator));
+            // 如果有 AI 特徵且文字較長，且不是明顯的用戶提問
+            if (hasAIFeatures && text.length > 20 && !hasUserFeatures) {
+                console.log('✓ 透過內容特徵判斷為 AI 訊息');
+                return true;
+            }
+            // 如果文字很長（>100字）且不包含問號，可能是 AI 回應
+            if (text.length > 100 && !text.includes('？') && !text.includes('?')) {
+                console.log('✓ 透過長度判斷為 AI 訊息');
+                return true;
+            }
+            return false;
+        }
+
+        // 處理 AI 回應
+        function handleAIResponse(messageElement) {
+            if (!isWaitingForResponse) {
+                console.log('⚠️ 當前不在等待回應狀態，忽略');
+                return;
+            }
+            const content = messageElement.textContent?.trim();
+            console.log('🎯 確認收到 AI 回應');
+            console.log('回應內容預覽:', content?.substring(0, 100) + '...');
+            // 標記為已處理
+            messageElement.setAttribute('data-processed', 'true');
+            // 重置等待狀態
+            isWaitingForResponse = false;
+            // 延遲一下確保回應完全載入
+            setTimeout(() => {
+                consumeQuestionAfterResponse();
+            }, 1500);
+        }
+
+        // 修改攔截器，加入等待狀態標記
         function interceptChatInput() {
             const chatbotElement = document.querySelector('.custom-chatbot');
-            if (!chatbotElement || !chatbotElement.shadowRoot) {
+            if (!chatbotElement?.shadowRoot) {
                 setTimeout(interceptChatInput, 1000);
                 return;
             }
-
             const shadowRoot = chatbotElement.shadowRoot;
             const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
-            
             if (inputElement && !inputElement.hasUsageChecker) {
                 console.log('🔧 設置輸入框攔截器（僅檢查次數）');
                 inputElement.hasUsageChecker = true;
-                
+                // 初始化訊息計數
+                const allMessages = getAllMessageElements(shadowRoot);
+                lastMessageCount = allMessages.length;
+                console.log('📊 初始訊息數量:', lastMessageCount);
                 inputElement.addEventListener('keydown', async function(e) {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         const messageText = inputElement.value.trim();
                         if (messageText) {
                             console.log('🎯 準備發送訊息:', messageText);
-                            
-                            // 只檢查次數，不扣除
+                            // 檢查次數
                             const hasQuestions = await checkUsageLimit();
                             if (!hasQuestions) {
                                 e.preventDefault();
@@ -516,14 +589,27 @@
                                 console.log('❌ 次數不足，阻止發送');
                                 return;
                             }
-                            
-                            console.log('✅ 次數足夠，允許發送（稍後收到回應時才扣除）');
-                            // 讓訊息正常發送，不阻止
+                            console.log('✅ 次數足夠，允許發送');
+                            // 標記開始等待回應
+                            isWaitingForResponse = true;
+                            console.log('⏳ 開始等待 AI 回應...');
+                            // 更新當前訊息數量（包含即將發送的用戶訊息）
+                            setTimeout(() => {
+                                const newMessages = getAllMessageElements(shadowRoot);
+                                lastMessageCount = newMessages.length;
+                                console.log('📊 發送後訊息數量:', lastMessageCount);
+                            }, 1000);
+                            // 設定超時機制（30秒後自動取消等待）
+                            setTimeout(() => {
+                                if (isWaitingForResponse) {
+                                    console.log('⏰ 等待 AI 回應超時，取消等待');
+                                    isWaitingForResponse = false;
+                                }
+                            }, 30000);
                         }
                     }
                 }, true);
             }
-
             if (!inputElement) {
                 setTimeout(interceptChatInput, 1000);
             }
