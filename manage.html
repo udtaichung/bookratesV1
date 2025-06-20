@@ -953,6 +953,134 @@
             };
             return errorMessages[errorCode] || '發生未知錯誤，請稍後再試';
         }
+
+        // 查看使用記錄
+        window.viewUsageLogs = function(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            const logs = user.usageLogs || [];
+            
+            // 創建記錄查看彈窗
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 2000; 
+                display: flex; justify-content: center; align-items: center;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 30px; border-radius: 15px; 
+                max-width: 600px; width: 90%; max-height: 80%; overflow-y: auto;
+            `;
+            
+            let logsHtml = `
+                <h3 style="margin: 0 0 20px 0; color: #1a365d;">
+                    📊 ${user.email} 的使用記錄
+                </h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    累計發問：<strong>${user.totalQuestions || 0}</strong> 次 | 
+                    最近記錄：<strong>${logs.length}</strong> 筆（保留最近24筆）
+                </p>
+            `;
+            
+            if (logs.length === 0) {
+                logsHtml += '<p style="text-align: center; color: #999;">尚無使用記錄</p>';
+            } else {
+                logsHtml += `
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">記錄格式說明</h4>
+                        <p style="margin: 0; font-size: 14px; color: #666;">
+                            格式：<code>MMDDHHMI-問題前6字</code><br>
+                            例如：<code>06201120-防火門開啟規</code> = 6月20日11:20 問「防火門開啟規定」
+                        </p>
+                    </div>
+                    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                `;
+                
+                // 以5列為一行的方式顯示記錄
+                logsHtml += '<div style="padding: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
+                
+                logs.forEach((log, index) => {
+                    logsHtml += `
+                        <div style="
+                            background: #f0f8ff; 
+                            padding: 8px; 
+                            border-radius: 4px; 
+                            font-family: monospace; 
+                            font-size: 12px; 
+                            text-align: center;
+                            border: 1px solid #e0e8f0;
+                        ">
+                            ${log}
+                        </div>
+                    `;
+                });
+                
+                logsHtml += '</div></div>';
+            }
+            
+            logsHtml += `
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="this.closest('[style*=fixed]').remove()">
+                        關閉
+                    </button>
+                    <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">
+                        匯出記錄
+                    </button>
+                </div>
+            `;
+            
+            content.innerHTML = logsHtml;
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        };
+
+        // 匯出使用記錄
+        window.exportUserLogs = function(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            const logs = user.usageLogs || [];
+            
+            let csvContent = '\uFEFF'; // BOM for UTF-8
+            csvContent += '使用記錄,解析時間,解析問題\n';
+            
+            logs.forEach(log => {
+                // 解析記錄格式：MMDDHHMI-問題前6字
+                const parts = log.split('-');
+                if (parts.length === 2) {
+                    const timePart = parts[0]; // MMDDHHMI
+                    const questionPart = parts[1]; // 問題前6字
+                    
+                    // 解析時間 (假設是今年)
+                    const currentYear = new Date().getFullYear();
+                    const month = timePart.substring(0, 2);
+                    const day = timePart.substring(2, 4);
+                    const hour = timePart.substring(4, 6);
+                    const minute = timePart.substring(6, 8);
+                    
+                    const parsedTime = `${currentYear}/${month}/${day} ${hour}:${minute}`;
+                    
+                    csvContent += `"${log}","${parsedTime}","${questionPart}"\n`;
+                } else {
+                    csvContent += `"${log}","無法解析","無法解析"\n`;
+                }
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${user.email}_使用記錄_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showPanelMessage(`${user.email} 的使用記錄已匯出`, 'success');
+        };
     </script>
 </body>
 </html>
