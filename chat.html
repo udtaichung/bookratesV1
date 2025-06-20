@@ -383,6 +383,9 @@
         let hasPendingQuestion = false;
         let pendingQuestionText = '';
 
+        // 新增全局變數來儲存使用者的提問
+        let userQuestions = [];
+
         // 監聽訊息變化並處理次數
         function monitorMessages() {
             const chatbotElement = document.querySelector('.custom-chatbot');
@@ -448,6 +451,8 @@
                     // 次數足夠，通知 parent 記錄問題
                     window.parent.postMessage({ type: "userQuestion", question: questionText }, "*");
                 }
+                // 將使用者的提問儲存到 userQuestions 中
+                userQuestions.push(questionText);
             } catch (error) {
                 console.error('❌ 處理用戶問題時發生錯誤:', error);
             }
@@ -488,10 +493,13 @@
                 textContent += "LLM模型：" + llmName + "\n";
             }
             textContent += "\n-------------------------------------\n\n";
-            
+            // 將 userQuestions 中的提問加入到聊天記錄中
+            userQuestions.forEach((question, index) => {
+                textContent += "用戶：\n" + question + "\n\n";
+                textContent += "-------------------------------------\n\n";
+            });
             const chatbotElement = document.querySelector('.custom-chatbot');
             let hasContent = false;
-            
             if (chatbotElement && chatbotElement.shadowRoot) {
                 try {
                     // 根據實際 DOM 結構調整選擇器
@@ -500,7 +508,6 @@
                         '.flex.items-start',
                         '.overflow-y-auto .flex'
                     ];
-                    
                     let messageContainers = [];
                     for (const selector of selectors) {
                         messageContainers = chatbotElement.shadowRoot.querySelectorAll(selector);
@@ -508,7 +515,6 @@
                             break;
                         }
                     }
-                    
                     messageContainers.forEach((container, index) => {
                         try {
                             const msgText = container.textContent || '';
@@ -526,7 +532,6 @@
                     console.error('獲取聊天內容時出錯：', e);
                 }
             }
-            
             if (!hasContent) {
                 textContent += "AI助手：\n您好！歡迎使用建築技術規則與台中建管問答系統。有什麼我可以幫您解答的問題嗎？\n\n";
                 textContent += "-------------------------------------\n\n";
@@ -534,7 +539,6 @@
                 textContent += "-------------------------------------\n\n";
                 textContent += "AI助手：\n依據台中市都市計畫法台中市施行自治條例，一般住宅區的建蔽率為60%。但具體數值可能因不同分區或特定區域規定而有所不同。\n\n";
             }
-            
             return textContent;
         }
         
