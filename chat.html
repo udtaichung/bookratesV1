@@ -485,7 +485,8 @@
             return '';
         }
 
-        function getChatContent() {
+        // 將 getChatContent 改為 async 並從 Firestore 取得 usageLogs
+        async function getChatContent() {
             let textContent = "建築技術規則 @ 台中建管 AI 聊天記錄\n\n";
             textContent += "輸出時間: " + new Date().toLocaleString('zh-TW') + "\n";
             const llmName = getCurrentLLMName && getCurrentLLMName();
@@ -493,48 +494,33 @@
                 textContent += "LLM模型：" + llmName + "\n";
             }
             textContent += "\n-------------------------------------\n\n";
-            // 將 userQuestions 中的提問加入到聊天記錄中
-            userQuestions.forEach((question, index) => {
-                textContent += "用戶：\n" + question + "\n\n";
-                textContent += "-------------------------------------\n\n";
-            });
-            const chatbotElement = document.querySelector('.custom-chatbot');
-            let hasContent = false;
-            if (chatbotElement && chatbotElement.shadowRoot) {
-                try {
-                    // 根據實際 DOM 結構調整選擇器
-                    const selectors = [
-                        '.border-transparent',
-                        '.flex.items-start',
-                        '.overflow-y-auto .flex'
-                    ];
-                    let messageContainers = [];
-                    for (const selector of selectors) {
-                        messageContainers = chatbotElement.shadowRoot.querySelectorAll(selector);
-                        if (messageContainers && messageContainers.length > 0) {
-                            break;
+
+            // 從 Firestore 取得使用者問題記錄
+            if (window.parent && window.parent.userData && window.parent.userData.usageLogs) {
+                const usageLogs = window.parent.userData.usageLogs || [];
+                usageLogs.forEach((log) => {
+                    if (log && log.trim()) {
+                        // log 格式是 "YYYYMMDD HHmm\n完整問題"
+                        const lines = log.split('\n');
+                        if (lines.length >= 2) {
+                            const timestamp = lines[0];
+                            const question = lines.slice(1).join('\n'); // 處理多行問題
+                            // 格式化時間顯示
+                            const year = timestamp.substring(0, 4);
+                            const month = timestamp.substring(4, 6);
+                            const day = timestamp.substring(6, 8);
+                            const hour = timestamp.substring(9, 11);
+                            const minute = timestamp.substring(11, 13);
+                            const formatTime = `${year}/${month}/${day} ${hour}:${minute}`;
+                            textContent += `[${formatTime}] 用戶：\n${question}\n\n`;
+                            textContent += "-------------------------------------\n\n";
                         }
                     }
-                    messageContainers.forEach((container, index) => {
-                        try {
-                            const msgText = container.textContent || '';
-                            if (msgText.trim() !== '') {
-                                const isUser = index % 2 !== 0;
-                                textContent += (isUser ? '用戶' : 'AI助手') + '：\n' + msgText.trim() + '\n\n';
-                                textContent += "-------------------------------------\n\n";
-                                hasContent = true;
-                            }
-                        } catch (e) {
-                            console.error('處理訊息時出錯：', e);
-                        }
-                    });
-                } catch (e) {
-                    console.error('獲取聊天內容時出錯：', e);
-                }
+                });
             }
-            if (!hasContent) {
-                textContent += "AI助手：\n您好！歡迎使用建築技術規則與台中建管問答系統。有什麼我可以幫您解答的問題嗎？\n\n";
-                textContent += "-------------------------------------\n\n";
+
+            // 如果沒有記錄，顯示預設內容
+            if (!window.parent || !window.parent.userData || !window.parent.userData.usageLogs || window.parent.userData.usageLogs.length === 0) {
                 textContent += "用戶：\n請問台中市住宅區的建蔽率是多少？\n\n";
                 textContent += "-------------------------------------\n\n";
                 textContent += "AI助手：\n依據台中市都市計畫法台中市施行自治條例，一般住宅區的建蔽率為60%。但具體數值可能因不同分區或特定區域規定而有所不同。\n\n";
