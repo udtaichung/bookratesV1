@@ -378,75 +378,229 @@
             }
         });
         
-        // ===== 攔截發送前的檢查與記錄 =====
+        // 1. 檢測是否為手機
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || window.innerWidth <= 768;
+        }
+
+        // 2. 強化版攔截器 - 支援手機版
         function interceptUserInput() {
+            console.log('🔧 開始設置攔截器，設備類型:', isMobile() ? '手機' : '桌機');
+            
             const chatbotElement = document.querySelector('.custom-chatbot');
             if (!chatbotElement?.shadowRoot) {
+                console.log('⏳ chatbot 還沒載入完成，1秒後重試');
                 setTimeout(interceptUserInput, 1000);
                 return;
             }
 
-            const shadowRoot = chatbotElement.shadowRoot;
-            const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
-            const sendButton = shadowRoot.querySelector('button[type="submit"], button:last-of-type');
-            
-            if (inputElement && sendButton) {
-                // 攔截發送按鈕
-                sendButton.addEventListener('click', async function(e) {
-                    const userInput = inputElement.value?.trim();
-                    if (!userInput) return;
+            // 3. 測試父視窗通訊
+            function testParentConnection() {
+                try {
                     if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                        const hasCredit = await window.parent.checkQuestionLimit();
-                        if (!hasCredit) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            showUsageWarning();
-                            inputElement.value = '';
-                            inputElement.placeholder = '今日問題次數已用完！';
-                            return false;
-                        }
-                        window.parent.postMessage({ type: "userQuestion", question: userInput }, "*");
+                        console.log('✅ 父視窗通訊正常');
+                        return true;
                     }
-                });
-
-                // 攔截 Enter 鍵
-                inputElement.addEventListener('keydown', async function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        const userInput = this.value?.trim();
-                        if (!userInput) return;
-                        if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                            const hasCredit = await window.parent.checkQuestionLimit();
-                            if (!hasCredit) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                showUsageWarning();
-                                this.value = '';
-                                this.placeholder = '今日問題次數已用完！';
-                                return false;
-                            }
-                            window.parent.postMessage({ type: "userQuestion", question: userInput }, "*");
-                        }
-                    }
-                });
-            } else {
-                setTimeout(interceptUserInput, 1000);
+                } catch (e) {
+                    console.log('❌ 父視窗通訊失敗:', e);
+                }
+                return false;
             }
+
+            if (!testParentConnection()) {
+                console.log('🔄 父視窗通訊未就緒，2秒後重試');
+                setTimeout(interceptUserInput, 2000);
+                return;
+            }
+
+            const shadowRoot = chatbotElement.shadowRoot;
+            
+            // 4. 多種選擇器嘗試（支援不同版本的 Flowise）
+            const inputSelectors = [
+                'input[type="text"]',
+                'textarea',
+                'input[placeholder*="問題"]',
+                'input[placeholder*="輸入"]',
+                'input[placeholder*="message"]',
+                '.text-input input',
+                '[role="textbox"]',
+                'input',
+                'textarea'
+            ];
+            
+            const buttonSelectors = [
+                'button[type="submit"]',
+                'button:last-of-type',
+                'button[aria-label*="send"]',
+                'button[title*="送出"]',
+                'button[title*="發送"]',
+                '.send-button',
+                'button:has(svg)',
+                'button'
+            ];
+            
+            let inputElement = null;
+            let sendButton = null;
+            
+            // 5. 依序嘗試找到正確元素
+            for (const selector of inputSelectors) {
+                inputElement = shadowRoot.querySelector(selector);
+                if (inputElement) {
+                    console.log('✅ 找到輸入框:', selector);
+                    break;
+                }
+            }
+            
+            for (const selector of buttonSelectors) {
+                sendButton = shadowRoot.querySelector(selector);
+                if (sendButton) {
+                    console.log('✅ 找到發送按鈕:', selector);
+                    break;
+                }
+            }
+            
+            if (!inputElement || !sendButton) {
+                console.log('❌ 找不到輸入框或按鈕，3秒後重試');
+                setTimeout(interceptUserInput, 3000);
+                return;
+            }
+
+            // 6. 建立攔截函數（支援重試機制）
+            async function interceptAndSend(userInput) {
+                if (!userInput || userInput.trim() === '') {
+                    console.log('❌ 空輸入，忽略');
+                    return true; // 允許空輸入通過
+                }
+                
+                console.log('🎯 攔截到用戶輸入:', userInput.substring(0, 30) + '...');
+                
+                try {
+                    // 檢查次數
+                    const hasCredit = await window.parent.checkQuestionLimit();
+                    if (!hasCredit) {
+                        console.log('❌ 次數不足，阻止發送');
+                        inputElement.value = '';
+                        inputElement.placeholder = '今日問題次數已用完！';
+                        
+                        // 顯示警告（用 postMessage 通知父視窗）
+                        window.parent.postMessage({ 
+                            type: "showUsageWarning" 
+                        }, "*");
+                        
+                        return false; // 阻止發送
+                    }
+                    
+                    // 立即記錄問題（重試機制）
+                    let recordSuccess = false;
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            window.parent.postMessage({ 
+                                type: "userQuestion", 
+                                question: userInput,
+                                attempt: attempt
+                            }, "*");
+                            recordSuccess = true;
+                            console.log(`✅ 記錄問題成功 (嘗試 ${attempt})`);
+                            break;
+                        } catch (e) {
+                            console.log(`❌ 記錄問題失敗 (嘗試 ${attempt}):`, e);
+                            if (attempt < 3) {
+                                await new Promise(resolve => setTimeout(resolve, 500)); // 等 0.5 秒再試
+                            }
+                        }
+                    }
+                    
+                    if (!recordSuccess) {
+                        console.log('❌ 多次嘗試仍無法記錄問題');
+                    }
+                    
+                    return true; // 允許發送
+                    
+                } catch (error) {
+                    console.error('❌ 攔截過程出錯:', error);
+                    return true; // 出錯時允許發送，避免完全卡住
+                }
+            }
+
+            // 7. 綁定按鈕點擊事件
+            sendButton.addEventListener('click', async function(e) {
+                const userInput = inputElement.value?.trim();
+                console.log('🖱️ 按鈕點擊，輸入內容:', userInput);
+                
+                const shouldAllow = await interceptAndSend(userInput);
+                if (!shouldAllow) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                }
+            }, true); // 使用 capture phase
+
+            // 8. 綁定 Enter 鍵事件
+            inputElement.addEventListener('keydown', async function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const userInput = this.value?.trim();
+                    console.log('⌨️ Enter 鍵，輸入內容:', userInput);
+                    
+                    const shouldAllow = await interceptAndSend(userInput);
+                    if (!shouldAllow) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }
+                }
+            }, true); // 使用 capture phase
+
+            // 9. 手機版額外綁定觸摸事件
+            if (isMobile()) {
+                console.log('📱 設置手機版額外事件監聽');
+                
+                sendButton.addEventListener('touchend', async function(e) {
+                    const userInput = inputElement.value?.trim();
+                    console.log('👆 觸摸結束，輸入內容:', userInput);
+                    
+                    const shouldAllow = await interceptAndSend(userInput);
+                    if (!shouldAllow) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }
+                }, true);
+            }
+
+            console.log('🎉 攔截器設置完成！');
         }
 
-        // DOMContentLoaded 啟動攔截器
+        // 10. 強化版啟動邏輯
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 頁面載入完成，準備設置攔截器');
+            
+            // 檢查用戶登入狀態和次數
             if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
                 window.parent.checkQuestionLimit().then(hasCredit => {
-                    if (!hasCredit) showUsageWarning();
+                    if (!hasCredit) {
+                        console.log('⚠️ 用戶次數不足');
+                        // 延遲顯示警告，確保 UI 已載入
+                        setTimeout(() => {
+                            window.parent.postMessage({ type: "showUsageWarning" }, "*");
+                        }, 2000);
+                    }
+                }).catch(e => {
+                    console.log('❌ 檢查用戶次數失敗:', e);
                 });
             }
             
+            // 延遲啟動攔截器（手機版需要更長時間）
+            const delay = isMobile() ? 5000 : 3000;
+            console.log(`⏰ ${delay/1000}秒後開始設置攔截器`);
+            setTimeout(interceptUserInput, delay);
+            
+            // 其他按鈕事件
             const saveButton = document.getElementById('saveButton');
             const exportDialog = document.getElementById('exportDialog');
-            const saveTxtButton = document.getElementById('saveTxtButton');
-            const savePdfButton = document.getElementById('savePdfButton');
-            const saveWordButton = document.getElementById('saveWordButton');
-            const saveLongScreenshotButton = document.getElementById('saveLongScreenshotButton');
             
             saveButton?.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -458,14 +612,6 @@
                     exportDialog.style.display = 'none';
                 }
             });
-            
-            saveTxtButton?.addEventListener('click', () => { exportToTxt(); exportDialog.style.display = 'none'; });
-            // ... 其他按鈕事件
-
-            // 啟動訊息監聽
-            setTimeout(() => {
-                interceptUserInput();
-            }, 3000);
         });
 
         // 顯示次數用完警告
