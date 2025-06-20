@@ -576,27 +576,34 @@
         const ADMIN_EMAIL = 'ud.taichung.chatgpt@gmail.com';
 
         // 管理員登入表單
-        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
+        // 只保留一份 submit 事件註冊，優化 email 驗證與訊息顯示
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        if (adminLoginForm) {
+            adminLoginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+                const password = document.getElementById('adminPassword').value;
 
-            if (email !== ADMIN_EMAIL) {
-                showAuthMessage('只有系統管理員可以登入此後台', 'error');
-                return;
-            }
+                if (email !== ADMIN_EMAIL.trim().toLowerCase()) {
+                    showAuthMessage('只有系統管理員可以登入此後台', 'error');
+                    // 不清空欄位
+                    return;
+                }
 
-            setAuthLoading(true);
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('管理員登入成功:', userCredential.user);
-            } catch (error) {
-                console.error('登入錯誤:', error);
-                showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
-            } finally {
-                setAuthLoading(false);
-            }
-        });
+                setAuthLoading(true);
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    console.log('管理員登入成功:', userCredential.user);
+                    // 登入成功後，Firebase onAuthStateChanged 會自動跳轉
+                } catch (error) {
+                    console.error('登入錯誤:', error);
+                    showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
+                    // 不清空欄位
+                } finally {
+                    setAuthLoading(false);
+                }
+            });
+        }
 
         // 監聽認證狀態
         onAuthStateChanged(auth, async (user) => {
@@ -771,7 +778,7 @@
         // 登入管理後台
         document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
+            const email = document.getElementById('adminEmail').value.trim().toLowerCase();
             const password = document.getElementById('adminPassword').value;
 
             if (email !== ADMIN_EMAIL) {
