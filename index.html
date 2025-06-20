@@ -865,6 +865,9 @@
                 console.log('用戶載入完成:', window.userData);
                 // ===== 啟動 LocalStorage 監聽器 =====
                 setupStorageListener();
+
+                // ===== 增強版跨iframe問題接收機制 =====
+                if (typeof setupEnhancedReceiving === 'function') setupEnhancedReceiving();
             } else {
                 console.log('用戶登出，清除資料');
                 window.currentUser = null;
@@ -1975,6 +1978,125 @@
     });
 
     console.log('🔧 MutationObserver 監控系統已設置完成');
+    </script>
+
+    <script>
+    // ===== 增強版跨iframe問題接收機制 =====
+    let processedQuestions = new Set();
+    function setupEnhancedReceiving() {
+        // 方法 1: 增強版 LocalStorage 監聽
+        function setupStorageMonitoring() {
+            const STORAGE_KEY = 'new_user_question';
+            window.addEventListener('storage', function(event) {
+                if (event.key === STORAGE_KEY && event.newValue) {
+                    try {
+                        const payload = JSON.parse(event.newValue);
+                        if (payload && payload.question && !payload.processed) {
+                            const questionId = payload.question + '_' + payload.timestamp;
+                            if (!processedQuestions.has(questionId)) {
+                                processedQuestions.add(questionId);
+                                processQuestion(payload.question);
+                                payload.processed = true;
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                            }
+                        }
+                    } catch (e) {}
+                }
+            });
+            setInterval(() => {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    if (data) {
+                        const payload = JSON.parse(data);
+                        if (payload && payload.question && !payload.processed) {
+                            const questionId = payload.question + '_' + payload.timestamp;
+                            if (!processedQuestions.has(questionId)) {
+                                processedQuestions.add(questionId);
+                                processQuestion(payload.question);
+                                payload.processed = true;
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }, 2000);
+        }
+        // 方法 2: 自定義事件監聽
+        function setupCustomEventListening() {
+            document.addEventListener('userQuestionDetected', function(event) {
+                if (event.detail && event.detail.question) {
+                    const questionId = event.detail.question + '_' + event.detail.timestamp;
+                    if (!processedQuestions.has(questionId)) {
+                        processedQuestions.add(questionId);
+                        processQuestion(event.detail.question);
+                    }
+                }
+            });
+            window.addEventListener('userQuestionDetected', function(event) {
+                if (event.detail && event.detail.question) {
+                    const questionId = event.detail.question + '_' + event.detail.timestamp;
+                    if (!processedQuestions.has(questionId)) {
+                        processedQuestions.add(questionId);
+                        processQuestion(event.detail.question);
+                    }
+                }
+            });
+        }
+        // 方法 3: 週期性檢查 iframe window 標記
+        function setupWindowFlagMonitoring() {
+            setInterval(() => {
+                try {
+                    const chatFrame = document.getElementById('chatFrame');
+                    if (chatFrame && chatFrame.contentWindow && chatFrame.contentWindow.latestUserQuestion) {
+                        const question = chatFrame.contentWindow.latestUserQuestion;
+                        if (question && !question.processed) {
+                            const questionId = question.text + '_' + question.timestamp;
+                            if (!processedQuestions.has(questionId)) {
+                                processedQuestions.add(questionId);
+                                processQuestion(question.text);
+                                chatFrame.contentWindow.latestUserQuestion.processed = true;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }, 1500);
+        }
+        // 統一處理問題的函數
+        function processQuestion(questionText) {
+            if (typeof window.consumeQuestionCredit === 'function') {
+                window.consumeQuestionCredit(questionText);
+            }
+        }
+        // 清理過期的處理記錄
+        setInterval(() => {
+            if (processedQuestions.size > 100) processedQuestions.clear();
+        }, 60000);
+        // 啟動所有接收方法
+        setupStorageMonitoring();
+        setupCustomEventListening();
+        setupWindowFlagMonitoring();
+        console.log('🚀 增強版接收機制已啟動');
+    }
+    // ===== iframe 載入時強化處理 =====
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatFrame = document.getElementById('chatFrame');
+        if (chatFrame) {
+            chatFrame.addEventListener('load', function() {
+                setTimeout(() => {
+                    try {
+                        chatFrame.contentWindow.postMessage({
+                            type: 'parentReady',
+                            enhancedMode: true,
+                            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                        }, '*');
+                    } catch (e) {}
+                    if (window.currentUser && typeof setupEnhancedReceiving === 'function') {
+                        setupEnhancedReceiving();
+                    }
+                }, 3000);
+            });
+        }
+    });
     </script>
 </body>
 </html>
