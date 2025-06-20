@@ -507,5 +507,201 @@
             customCSS: ''
         })
     </script>
+
+    <!-- ===== 多層次監聽機制：增強用戶問題同步 ===== -->
+    <script>
+    // 多層次監聽機制
+    function setupMultiLayerListening() {
+        const STORAGE_KEY = 'new_user_question';
+        let lastQuestionTime = 0;
+        let questionBuffer = [];
+
+        // 方法 1: 直接監聽輸入框
+        function setupInputMonitoring() {
+            const checkInputs = () => {
+                try {
+                    const chatbot = document.querySelector('flowise-fullchatbot');
+                    if (chatbot && chatbot.shadowRoot) {
+                        const inputs = chatbot.shadowRoot.querySelectorAll('input[type="text"], textarea');
+                        inputs.forEach(input => {
+                            if (!input.dataset.monitored) {
+                                input.dataset.monitored = 'true';
+                                // 監聽按鍵事件
+                                input.addEventListener('keydown', function(e) {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        const question = this.value.trim();
+                                        if (question) {
+                                            recordQuestion(question);
+                                        }
+                                    }
+                                });
+                                // 監聽表單提交
+                                const form = input.closest('form');
+                                if (form && !form.dataset.monitored) {
+                                    form.dataset.monitored = 'true';
+                                    form.addEventListener('submit', function(e) {
+                                        const question = input.value.trim();
+                                        if (question) {
+                                            recordQuestion(question);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                        // 監聽發送按鈕
+                        const buttons = chatbot.shadowRoot.querySelectorAll('button');
+                        buttons.forEach(btn => {
+                            if (!btn.dataset.monitored && 
+                                (btn.textContent.includes('發送') || 
+                                 btn.textContent.includes('Send') ||
+                                 btn.type === 'submit')) {
+                                btn.dataset.monitored = 'true';
+                                btn.addEventListener('click', function() {
+                                    const inputs = chatbot.shadowRoot.querySelectorAll('input[type="text"], textarea');
+                                    inputs.forEach(input => {
+                                        const question = input.value.trim();
+                                        if (question) {
+                                            recordQuestion(question);
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {}
+                setTimeout(checkInputs, 2000);
+            };
+            checkInputs();
+        }
+
+        // 方法 2: DOM 變化監聽
+        function setupDOMMonitoring() {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                // 檢查是否是用戶訊息
+                                const checkUserMessage = (element) => {
+                                    const text = element.textContent || element.innerText || '';
+                                    const isUserMsg = element.classList && (element.classList.contains('user') ||
+                                                    element.classList.contains('user-message')) ||
+                                                    element.getAttribute && element.getAttribute('data-role') === 'user' ||
+                                                    (element.closest && element.closest('[data-role="user"]'));
+                                    if (isUserMsg && text.trim()) {
+                                        recordQuestion(text.trim());
+                                    }
+                                };
+                                checkUserMessage(node);
+                                if (node.querySelectorAll) {
+                                    const userElements = node.querySelectorAll('[data-role="user"], .user-message, [class*="user"]');
+                                    userElements.forEach(checkUserMessage);
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['data-role', 'class']
+            });
+        }
+
+        // 方法 3: 週期性檢查聊天記錄
+        function setupPeriodicCheck() {
+            let lastMessageCount = 0;
+            setInterval(() => {
+                try {
+                    const chatbot = document.querySelector('flowise-fullchatbot');
+                    if (chatbot && chatbot.shadowRoot) {
+                        const messages = chatbot.shadowRoot.querySelectorAll('[data-role="user"], .user-message, [class*="user"]');
+                        if (messages.length > lastMessageCount) {
+                            const newMessages = Array.from(messages).slice(lastMessageCount);
+                            newMessages.forEach(msg => {
+                                const text = msg.textContent || msg.innerText || '';
+                                if (text.trim()) {
+                                    recordQuestion(text.trim());
+                                }
+                            });
+                            lastMessageCount = messages.length;
+                        }
+                    }
+                } catch (e) {}
+            }, 3000);
+        }
+
+        // 統一記錄問題的函數
+        function recordQuestion(questionText) {
+            const now = Date.now();
+            if (now - lastQuestionTime < 3000) return;
+            if (questionBuffer.includes(questionText)) return;
+            lastQuestionTime = now;
+            questionBuffer.push(questionText);
+            if (questionBuffer.length > 10) questionBuffer.shift();
+            notifyParent(questionText);
+        }
+
+        // 多種方式通知父頁面
+        function notifyParent(questionText) {
+            // 方式 1: postMessage
+            try {
+                window.parent.postMessage({
+                    type: 'userQuestion',
+                    question: questionText,
+                    timestamp: Date.now(),
+                    source: 'enhanced_monitoring'
+                }, '*');
+            } catch (e) {}
+            // 方式 2: LocalStorage
+            try {
+                const payload = {
+                    question: questionText,
+                    timestamp: Date.now(),
+                    processed: false
+                };
+                localStorage.removeItem(STORAGE_KEY);
+                setTimeout(() => {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                    window.dispatchEvent(new StorageEvent('storage', {
+                        key: STORAGE_KEY,
+                        newValue: JSON.stringify(payload),
+                        storageArea: localStorage
+                    }));
+                }, 100);
+            } catch (e) {}
+            // 方式 3: 自定義事件
+            try {
+                const event = new CustomEvent('userQuestionDetected', {
+                    detail: {
+                        question: questionText,
+                        timestamp: Date.now()
+                    }
+                });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+            } catch (e) {}
+            // 方式 4: window 標記
+            try {
+                window.latestUserQuestion = {
+                    text: questionText,
+                    timestamp: Date.now(),
+                    processed: false
+                };
+            } catch (e) {}
+        }
+
+        setupInputMonitoring();
+        setupDOMMonitoring();
+        setupPeriodicCheck();
+    }
+    // 頁面載入完成後啟動
+    document.addEventListener('DOMContentLoaded', setupMultiLayerListening);
+    window.addEventListener('load', () => {
+        setTimeout(setupMultiLayerListening, 2000);
+    });
+    </script>
 </body>
 </html>
