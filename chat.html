@@ -361,6 +361,10 @@
                     }
                 }
             }
+            // 新增：接收 clearUsageWarning 訊息
+            if (event.data && event.data.type === "clearUsageWarning") {
+                document.getElementById('usageWarning').style.display = 'none';
+            }
         });
         
         // 簡單的訊息監聽（不攔截發送）- 發送後檢查並記錄
