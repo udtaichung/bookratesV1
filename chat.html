@@ -483,7 +483,7 @@
         function getChatContent() {
             let textContent = "建築技術規則 @ 台中建管 AI 聊天記錄\n\n";
             textContent += "輸出時間: " + new Date().toLocaleString('zh-TW') + "\n";
-            const llmName = getCurrentLLMName();
+            const llmName = getCurrentLLMName && getCurrentLLMName();
             if (llmName) {
                 textContent += "LLM模型：" + llmName + "\n";
             }
@@ -494,6 +494,7 @@
             
             if (chatbotElement && chatbotElement.shadowRoot) {
                 try {
+                    // 根據實際 DOM 結構調整選擇器
                     const selectors = [
                         '.border-transparent',
                         '.flex.items-start',
@@ -504,7 +505,6 @@
                     for (const selector of selectors) {
                         messageContainers = chatbotElement.shadowRoot.querySelectorAll(selector);
                         if (messageContainers && messageContainers.length > 0) {
-                            console.log('找到訊息容器，使用選擇器: ' + selector);
                             break;
                         }
                     }
