@@ -466,7 +466,9 @@
                         <th>等級</th>
                         <th>剩餘次數</th>
                         <th>額外點數</th>
+                        <th>累計發問</th>
                         <th>最後重置</th>
+                        <th>最後使用</th>
                         <th>註冊時間</th>
                         <th>操作</th>
                     </tr>
@@ -478,7 +480,7 @@
     </div>
 
     <!-- 編輯用戶彈窗 -->
-    <div id="editUserModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+    <div id="editUserModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
             <h3 style="margin: 0 0 20px 0; color: #1a365d;">編輯用戶資料</h3>
             <div id="editUserForm">
@@ -660,16 +662,24 @@
             allUsers.forEach(user => {
                 const row = document.createElement('tr');
                 const createdAt = user.createdAt ? new Date(user.createdAt.toDate()).toLocaleDateString('zh-TW') : '-';
+                const lastUsed = user.lastUsed ? new Date(user.lastUsed.toDate()).toLocaleString('zh-TW') : '-';
+                const totalQuestions = user.totalQuestions || 0;
+                const logsCount = user.usageLogs ? user.usageLogs.length : 0;
                 
                 row.innerHTML = `
                     <td>${user.email}</td>
                     <td>${user.level || 5}</td>
                     <td>${user.questionsLeft || 0}</td>
                     <td>${user.extraCredits || 0}</td>
+                    <td><strong>${totalQuestions}</strong></td>
                     <td>${user.lastReset || '-'}</td>
+                    <td style="font-size: 12px;">${lastUsed}</td>
                     <td>${createdAt}</td>
                     <td class="user-actions">
                         <button class="btn btn-primary" onclick="editUser('${user.id}')">編輯</button>
+                        <button class="btn btn-secondary" onclick="viewUsageLogs('${user.id}')" title="查看最近 ${logsCount} 筆記錄">
+                            記錄 (${logsCount})
+                        </button>
                         <button class="btn btn-secondary" onclick="resetUserQuestions('${user.id}')">重置次數</button>
                     </td>
                 `;
@@ -681,49 +691,88 @@
 
         // 編輯用戶
         window.editUser = function(userId) {
+            console.log('📝 編輯用戶:', userId);
             const user = allUsers.find(u => u.id === userId);
-            if (!user) return;
-
+            if (!user) {
+                console.error('找不到用戶:', userId);
+                showPanelMessage('找不到指定用戶', 'error');
+                return;
+            }
             editingUserId = userId;
-            document.getElementById('editUserEmail').value = user.email;
+            document.getElementById('editUserEmail').value = user.email || '';
             document.getElementById('editUserLevel').value = user.level || 5;
             document.getElementById('editUserDailyQuestions').value = user.dailyQuestions || 10;
             document.getElementById('editUserQuestionsLeft').value = user.questionsLeft || 0;
             document.getElementById('editUserExtraCredits').value = user.extraCredits || 0;
-
-            document.getElementById('editUserModal').style.display = 'flex';
+            const modal = document.getElementById('editUserModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('✅ 編輯彈窗已顯示');
+            } else {
+                console.error('找不到編輯彈窗元素');
+            }
         };
 
         // 儲存用戶資料
         window.saveUserData = async function() {
-            if (!editingUserId) return;
-
+            console.log('💾 儲存用戶資料');
+            if (!editingUserId) {
+                console.error('沒有正在編輯的用戶');
+                showPanelMessage('沒有正在編輯的用戶', 'error');
+                return;
+            }
             const level = parseInt(document.getElementById('editUserLevel').value);
             const dailyQuestions = parseInt(document.getElementById('editUserDailyQuestions').value);
             const questionsLeft = parseInt(document.getElementById('editUserQuestionsLeft').value);
             const extraCredits = parseInt(document.getElementById('editUserExtraCredits').value);
-
+            if (isNaN(level) || level < 1 || level > 10) {
+                showPanelMessage('等級必須在 1-10 之間', 'error');
+                return;
+            }
+            if (isNaN(dailyQuestions) || dailyQuestions < 1 || dailyQuestions > 100) {
+                showPanelMessage('每日問題次數必須在 1-100 之間', 'error');
+                return;
+            }
+            if (isNaN(questionsLeft) || questionsLeft < 0 || questionsLeft > 100) {
+                showPanelMessage('剩餘次數必須在 0-100 之間', 'error');
+                return;
+            }
+            if (isNaN(extraCredits) || extraCredits < 0 || extraCredits > 1000) {
+                showPanelMessage('額外點數必須在 0-1000 之間', 'error');
+                return;
+            }
             try {
+                console.log('📤 更新用戶資料到資料庫');
                 await updateDoc(doc(db, 'users', editingUserId), {
                     level: level,
                     dailyQuestions: dailyQuestions,
                     questionsLeft: questionsLeft,
                     extraCredits: extraCredits
                 });
-
+                console.log('✅ 用戶資料更新成功');
                 closeEditModal();
                 await loadAllData();
                 showPanelMessage('用戶資料更新成功', 'success');
             } catch (error) {
-                console.error('更新用戶資料錯誤:', error);
-                showPanelMessage('更新用戶資料時發生錯誤', 'error');
+                console.error('❌ 更新用戶資料錯誤:', error);
+                showPanelMessage('更新用戶資料時發生錯誤: ' + error.message, 'error');
             }
         };
 
         // 關閉編輯彈窗
         window.closeEditModal = function() {
-            document.getElementById('editUserModal').style.display = 'none';
+            console.log('❌ 關閉編輯彈窗');
+            const modal = document.getElementById('editUserModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
             editingUserId = null;
+            document.getElementById('editUserEmail').value = '';
+            document.getElementById('editUserLevel').value = '5';
+            document.getElementById('editUserDailyQuestions').value = '10';
+            document.getElementById('editUserQuestionsLeft').value = '0';
+            document.getElementById('editUserExtraCredits').value = '0';
+            console.log('✅ 編輯彈窗已關閉並清空');
         };
 
         // 重置單個用戶的問題次數
@@ -956,64 +1005,169 @@
 
         // 查看使用記錄
         window.viewUsageLogs = function(userId) {
+            console.log('📊 查看使用記錄:', userId);
+            
             const user = allUsers.find(u => u.id === userId);
-            if (!user) return;
+            if (!user) {
+                console.error('找不到用戶:', userId);
+                showPanelMessage('找不到指定用戶', 'error');
+                return;
+            }
 
             const logs = user.usageLogs || [];
             
             // 創建記錄查看彈窗
             const modal = document.createElement('div');
+            modal.id = 'usageLogsModal';
             modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.8); z-index: 2000; 
-                display: flex; justify-content: center; align-items: center;
+                position: fixed; 
+                top: 0; 
+                left: 0; 
+                width: 100%; 
+                height: 100%; 
+                background: rgba(0,0,0,0.8); 
+                z-index: 2000; 
+                display: flex; 
+                justify-content: center; 
+                align-items: center;
+                font-family: 'Microsoft JhengHei', Arial, sans-serif;
             `;
             
             const content = document.createElement('div');
             content.style.cssText = `
-                background: white; padding: 30px; border-radius: 15px; 
-                max-width: 600px; width: 90%; max-height: 80%; overflow-y: auto;
+                background: white; 
+                padding: 30px; 
+                border-radius: 15px; 
+                max-width: 800px; 
+                width: 90%; 
+                max-height: 80%; 
+                overflow-y: auto;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
             `;
             
             let logsHtml = `
-                <h3 style="margin: 0 0 20px 0; color: #1a365d;">
-                    📊 ${user.email} 的使用記錄
-                </h3>
-                <p style="color: #666; margin-bottom: 20px;">
-                    累計發問：<strong>${user.totalQuestions || 0}</strong> 次 | 
-                    最近記錄：<strong>${logs.length}</strong> 筆（保留最近24筆）
-                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #1a365d; font-size: 24px;">
+                        📊 ${user.email} 的使用記錄
+                    </h3>
+                    <button onclick="closeUsageLogsModal()" style="
+                        background: #e53e3e; 
+                        color: white; 
+                        border: none; 
+                        border-radius: 50%; 
+                        width: 30px; 
+                        height: 30px; 
+                        cursor: pointer; 
+                        font-size: 18px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">×</button>
+                </div>
+                
+                <div style="
+                    background: linear-gradient(145deg, #f0f8ff, #e6f3ff); 
+                    padding: 20px; 
+                    border-radius: 10px; 
+                    margin-bottom: 25px;
+                    border: 2px solid #00ff88;
+                ">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #00ff88;">${user.totalQuestions || 0}</div>
+                            <div style="color: #666; font-size: 14px;">累計發問</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #2196f3;">${logs.length}</div>
+                            <div style="color: #666; font-size: 14px;">記錄筆數</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #ff9800;">${user.questionsLeft || 0}</div>
+                            <div style="color: #666; font-size: 14px;">剩餘次數</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #9c27b0;">${user.extraCredits || 0}</div>
+                            <div style="color: #666; font-size: 14px;">額外點數</div>
+                        </div>
+                    </div>
+                </div>
             `;
             
             if (logs.length === 0) {
-                logsHtml += '<p style="text-align: center; color: #999;">尚無使用記錄</p>';
+                logsHtml += `
+                    <div style="
+                        text-align: center; 
+                        padding: 40px; 
+                        color: #999; 
+                        background: #f9f9f9; 
+                        border-radius: 10px;
+                        border: 2px dashed #ddd;
+                    ">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                        <div style="font-size: 18px; margin-bottom: 10px;">尚無使用記錄</div>
+                        <div style="font-size: 14px;">此用戶還沒有發問過任何問題</div>
+                    </div>
+                `;
             } else {
                 logsHtml += `
-                    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 10px 0; color: #333;">記錄格式說明</h4>
-                        <p style="margin: 0; font-size: 14px; color: #666;">
-                            格式：<code>MMDDHHMI-問題前6字</code><br>
-                            例如：<code>06201120-防火門開啟規</code> = 6月20日11:20 問「防火門開啟規定」
-                        </p>
+                    <div style="
+                        background: #f9f9f9; 
+                        padding: 15px; 
+                        border-radius: 8px; 
+                        margin-bottom: 20px;
+                        border-left: 4px solid #00ff88;
+                    ">
+                        <h4 style="margin: 0 0 10px 0; color: #333; display: flex; align-items: center;">
+                            <span style="margin-right: 10px;">ℹ️</span>
+                            記錄格式說明
+                        </h4>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 14px; color: #666;">
+                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">MMDDHHMI-問題前6字</code></div>
+                            <div>月日時分-問題前6個字</div>
+                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">06201120-防火門開啟規</code></div>
+                            <div>6月20日11:20 問「防火門開啟規定」</div>
+                        </div>
                     </div>
-                    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                    
+                    <div style="
+                        background: #fff; 
+                        border: 2px solid #e0e0e0; 
+                        border-radius: 10px; 
+                        max-height: 400px; 
+                        overflow-y: auto;
+                    ">
+                        <div style="
+                            padding: 20px; 
+                            display: grid; 
+                            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+                            gap: 12px;
+                        ">
                 `;
                 
-                // 以5列為一行的方式顯示記錄
-                logsHtml += '<div style="padding: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">';
-                
+                // 顯示記錄，最新的在前面
                 logs.forEach((log, index) => {
+                    // 解析記錄以決定顏色
+                    const isRecent = index < 5; // 最近5筆用不同顏色
+                    const bgColor = isRecent ? '#e8f5e8' : '#f8f9fa';
+                    const borderColor = isRecent ? '#4caf50' : '#e0e0e0';
+                    const textColor = isRecent ? '#2e7d32' : '#333';
+                    
                     logsHtml += `
                         <div style="
-                            background: #f0f8ff; 
-                            padding: 8px; 
-                            border-radius: 4px; 
-                            font-family: monospace; 
-                            font-size: 12px; 
+                            background: ${bgColor}; 
+                            padding: 10px; 
+                            border-radius: 6px; 
+                            font-family: 'Courier New', monospace; 
+                            font-size: 13px; 
                             text-align: center;
-                            border: 1px solid #e0e8f0;
-                        ">
+                            border: 2px solid ${borderColor};
+                            color: ${textColor};
+                            font-weight: ${isRecent ? 'bold' : 'normal'};
+                            position: relative;
+                            transition: transform 0.2s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             ${log}
+                            ${isRecent ? '<div style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center;">新</div>' : ''}
                         </div>
                     `;
                 });
@@ -1022,65 +1176,123 @@
             }
             
             logsHtml += `
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="this.closest('[style*=fixed]').remove()">
-                        關閉
-                    </button>
-                    <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">
-                        匯出記錄
-                    </button>
+                <div style="
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    margin-top: 25px; 
+                    padding-top: 20px; 
+                    border-top: 2px solid #e0e0e0;
+                ">
+                    <div style="font-size: 12px; color: #666;">
+                        💡 提示：最近5筆記錄會以綠色高亮顯示
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="closeUsageLogsModal()" style="margin-right: 10px;">
+                            關閉
+                        </button>
+                        <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">
+                            📄 匯出記錄
+                        </button>
+                    </div>
                 </div>
             `;
             
             content.innerHTML = logsHtml;
             modal.appendChild(content);
             document.body.appendChild(modal);
+            
+            console.log('✅ 使用記錄彈窗已顯示');
         };
 
-        // 匯出使用記錄
+        // 關閉使用記錄彈窗
+        window.closeUsageLogsModal = function() {
+            const modal = document.getElementById('usageLogsModal');
+            if (modal) {
+                modal.remove();
+                console.log('✅ 使用記錄彈窗已關閉');
+            }
+        };
+
+        // 改進的匯出用戶記錄功能
         window.exportUserLogs = function(userId) {
+            console.log('📤 匯出用戶記錄:', userId);
+            
             const user = allUsers.find(u => u.id === userId);
-            if (!user) return;
+            if (!user) {
+                showPanelMessage('找不到指定用戶', 'error');
+                return;
+            }
 
             const logs = user.usageLogs || [];
             
-            let csvContent = '\uFEFF'; // BOM for UTF-8
-            csvContent += '使用記錄,解析時間,解析問題\n';
+            if (logs.length === 0) {
+                showPanelMessage('該用戶沒有使用記錄可匯出', 'warning');
+                return;
+            }
             
-            logs.forEach(log => {
+            let csvContent = '\uFEFF'; // BOM for UTF-8
+            csvContent += '序號,使用記錄,解析時間,解析問題,原始時間戳\n';
+            
+            logs.forEach((log, index) => {
                 // 解析記錄格式：MMDDHHMI-問題前6字
                 const parts = log.split('-');
+                let parsedTime = '無法解析';
+                let questionPart = '無法解析';
+                
                 if (parts.length === 2) {
                     const timePart = parts[0]; // MMDDHHMI
-                    const questionPart = parts[1]; // 問題前6字
+                    questionPart = parts[1]; // 問題前6字
                     
                     // 解析時間 (假設是今年)
-                    const currentYear = new Date().getFullYear();
-                    const month = timePart.substring(0, 2);
-                    const day = timePart.substring(2, 4);
-                    const hour = timePart.substring(4, 6);
-                    const minute = timePart.substring(6, 8);
-                    
-                    const parsedTime = `${currentYear}/${month}/${day} ${hour}:${minute}`;
-                    
-                    csvContent += `"${log}","${parsedTime}","${questionPart}"\n`;
-                } else {
-                    csvContent += `"${log}","無法解析","無法解析"\n`;
+                    if (timePart.length === 8) {
+                        const currentYear = new Date().getFullYear();
+                        const month = timePart.substring(0, 2);
+                        const day = timePart.substring(2, 4);
+                        const hour = timePart.substring(4, 6);
+                        const minute = timePart.substring(6, 8);
+                        
+                        parsedTime = `${currentYear}/${month}/${day} ${hour}:${minute}`;
+                    }
                 }
+                
+                const now = new Date().toLocaleString('zh-TW');
+                csvContent += `"${index + 1}","${log}","${parsedTime}","${questionPart}","${now}"\n`;
             });
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
+            const fileName = `${user.email.replace('@', '_')}_使用記錄_${new Date().toISOString().split('T')[0]}.csv`;
+            
             link.setAttribute('href', url);
-            link.setAttribute('download', `${user.email}_使用記錄_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', fileName);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            showPanelMessage(`${user.email} 的使用記錄已匯出`, 'success');
+            showPanelMessage(`${user.email} 的使用記錄已匯出 (${logs.length} 筆)`, 'success');
+            console.log('✅ 用戶記錄匯出完成');
         };
+
+        // 點擊彈窗外部關閉
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('usageLogsModal');
+            if (modal && e.target === modal) {
+                closeUsageLogsModal();
+            }
+        });
+
+        // ESC 鍵關閉
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('usageLogsModal');
+                if (modal) {
+                    closeUsageLogsModal();
+                }
+            }
+        });
     </script>
 </body>
 </html>
