@@ -378,92 +378,100 @@
             }
         });
         
-        // 簡單的訊息監聽（不攔截發送）- 發送後檢查並記錄
-        let lastMessageCount = 0;
-        let hasPendingQuestion = false;
-        let pendingQuestionText = '';
-
-        // 新增全局變數來儲存使用者的提問
-        let userQuestions = [];
-
-        // 監聽訊息變化並處理次數
-        function monitorMessages() {
+        // ===== 攔截發送前的檢查與記錄 =====
+        function interceptUserInput() {
             const chatbotElement = document.querySelector('.custom-chatbot');
             if (!chatbotElement?.shadowRoot) {
-                setTimeout(monitorMessages, 1000);
+                setTimeout(interceptUserInput, 1000);
                 return;
             }
 
-            // 定時檢查訊息數量變化
-            setInterval(async () => {
-                const shadowRoot = chatbotElement.shadowRoot;
-                const messageElements = shadowRoot.querySelectorAll('[class*="message"], .flex.items-start') || [];
-                const currentCount = messageElements.length;
-
-                // 檢查是否有新的用戶訊息（偶數索引通常是用戶訊息）
-                if (currentCount > lastMessageCount) {
-                    console.log('📊 偵測到新訊息，數量從', lastMessageCount, '增加到', currentCount);
-                    
-                    // 檢查最新的訊息是否為用戶訊息
-                    const latestMessage = messageElements[messageElements.length - 1];
-                    if (latestMessage) {
-                        const messageText = latestMessage.textContent?.trim() || '';
-                        
-                        // 簡單判斷：如果是用戶剛發送的問題
-                        if (messageText && messageText.length > 0 && !hasPendingQuestion) {
-                            console.log('👤 偵測到用戶新問題:', messageText.substring(0, 50) + '...');
-                            hasPendingQuestion = true;
-                            pendingQuestionText = messageText;
-                            
-                            // 延遲處理，等待可能的 AI 回應
-                            setTimeout(async () => {
-                                await handleUserQuestion(pendingQuestionText);
-                                hasPendingQuestion = false;
-                                pendingQuestionText = '';
-                            }, 2000);
-                        }
-                    }
-                    
-                    lastMessageCount = currentCount;
-                }
-            }, 1000);
-        }
-
-        // 處理用戶問題（發送後檢查和記錄）
-        async function handleUserQuestion(questionText) {
-            console.log('🔍 處理用戶問題:', questionText.substring(0, 30) + '...');
-            try {
-                // 檢查次數是否足夠
-                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                    const hasCredit = await window.parent.checkQuestionLimit();
-                    if (!hasCredit) {
-                        console.log('❌ 次數不足，顯示警告');
-                        showUsageWarning();
-                        // 清空當前輸入框（如果有的話）
-                        const chatbotElement = document.querySelector('.custom-chatbot');
-                        const inputElement = chatbotElement?.shadowRoot?.querySelector('input[type="text"], textarea');
-                        if (inputElement) {
+            const shadowRoot = chatbotElement.shadowRoot;
+            const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
+            const sendButton = shadowRoot.querySelector('button[type="submit"], button:last-of-type');
+            
+            if (inputElement && sendButton) {
+                // 攔截發送按鈕
+                sendButton.addEventListener('click', async function(e) {
+                    const userInput = inputElement.value?.trim();
+                    if (!userInput) return;
+                    if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                        const hasCredit = await window.parent.checkQuestionLimit();
+                        if (!hasCredit) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            showUsageWarning();
                             inputElement.value = '';
-                            inputElement.placeholder = '今日問題次數已用完，請明天再來！';
+                            inputElement.placeholder = '今日問題次數已用完！';
+                            return false;
                         }
-                        return;
+                        window.parent.postMessage({ type: "userQuestion", question: userInput }, "*");
                     }
-                    // 次數足夠，通知 parent 記錄問題
-                    window.parent.postMessage({ type: "userQuestion", question: questionText }, "*");
-                }
-                // 將使用者的提問儲存到 userQuestions 中
-                userQuestions.push(questionText);
-            } catch (error) {
-                console.error('❌ 處理用戶問題時發生錯誤:', error);
+                });
+
+                // 攔截 Enter 鍵
+                inputElement.addEventListener('keydown', async function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        const userInput = this.value?.trim();
+                        if (!userInput) return;
+                        if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                            const hasCredit = await window.parent.checkQuestionLimit();
+                            if (!hasCredit) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                showUsageWarning();
+                                this.value = '';
+                                this.placeholder = '今日問題次數已用完！';
+                                return false;
+                            }
+                            window.parent.postMessage({ type: "userQuestion", question: userInput }, "*");
+                        }
+                    }
+                });
+            } else {
+                setTimeout(interceptUserInput, 1000);
             }
         }
+
+        // DOMContentLoaded 啟動攔截器
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                window.parent.checkQuestionLimit().then(hasCredit => {
+                    if (!hasCredit) showUsageWarning();
+                });
+            }
+            
+            const saveButton = document.getElementById('saveButton');
+            const exportDialog = document.getElementById('exportDialog');
+            const saveTxtButton = document.getElementById('saveTxtButton');
+            const savePdfButton = document.getElementById('savePdfButton');
+            const saveWordButton = document.getElementById('saveWordButton');
+            const saveLongScreenshotButton = document.getElementById('saveLongScreenshotButton');
+            
+            saveButton?.addEventListener('click', function(e) {
+                e.stopPropagation();
+                exportDialog.style.display = exportDialog.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (exportDialog && !saveButton?.contains(e.target) && !exportDialog.contains(e.target)) {
+                    exportDialog.style.display = 'none';
+                }
+            });
+            
+            saveTxtButton?.addEventListener('click', () => { exportToTxt(); exportDialog.style.display = 'none'; });
+            // ... 其他按鈕事件
+
+            // 啟動訊息監聽
+            setTimeout(() => {
+                interceptUserInput();
+            }, 3000);
+        });
 
         // 顯示次數用完警告
         function showUsageWarning() {
             document.getElementById('usageWarning').style.display = 'block';
         }
-
-        // 關閉次數警告
         window.closeUsageWarning = function() {
             document.getElementById('usageWarning').style.display = 'none';
         };
@@ -549,43 +557,6 @@
         
         // ... 其他匯出函數保持不變（exportToPdf, exportToWord, exportLongScreenshot 等）
         // 為節省空間，這裡省略，實際使用時請保留完整版本
-        
-        // DOMContentLoaded 事件監聽器
-        document.addEventListener('DOMContentLoaded', function() {
-            // 進入 chat.html 後立即檢查次數
-            if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                window.parent.checkQuestionLimit().then(hasCredit => {
-                    if (!hasCredit) showUsageWarning();
-                });
-            }
-            
-            const saveButton = document.getElementById('saveButton');
-            const exportDialog = document.getElementById('exportDialog');
-            const saveTxtButton = document.getElementById('saveTxtButton');
-            const savePdfButton = document.getElementById('savePdfButton');
-            const saveWordButton = document.getElementById('saveWordButton');
-            const saveLongScreenshotButton = document.getElementById('saveLongScreenshotButton');
-            
-            saveButton?.addEventListener('click', function(e) {
-                e.stopPropagation();
-                exportDialog.style.display = exportDialog.style.display === 'block' ? 'none' : 'block';
-            });
-            
-            document.addEventListener('click', function(e) {
-                if (exportDialog && !saveButton?.contains(e.target) && !exportDialog.contains(e.target)) {
-                    exportDialog.style.display = 'none';
-                }
-            });
-            
-            saveTxtButton?.addEventListener('click', () => { exportToTxt(); exportDialog.style.display = 'none'; });
-            // ... 其他按鈕事件
-
-            // 啟動訊息監聽
-            setTimeout(() => {
-                console.log('📡 啟動訊息監聽（非攔截模式）');
-                monitorMessages();
-            }, 3000);
-        });
     </script>
 
     <script type="module">
