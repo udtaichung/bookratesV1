@@ -341,29 +341,30 @@
 
         setTimeout(setupScrollListener, 1000);
         
-        // 攔截用戶問題並寫入 LocalStorage
-        // 1. 定義 LocalStorage 的鍵名
-        const STORAGE_KEY = 'new_user_question';
+        // ===== 用戶發問寫入 localStorage 並通知父頁面 =====
+        function saveQuestionToLocal(questionText) {
+            const now = new Date();
+            const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+            const record = { question: questionText, timestamp, synced: false };
+            let questions = JSON.parse(localStorage.getItem('user_questions') || '[]');
+            questions.push(record);
+            localStorage.setItem('user_questions', JSON.stringify(questions));
+            return record;
+        }
+
+        function interceptUserMessage(questionText) {
+            const record = saveQuestionToLocal(questionText);
+            // 通知父頁面同步 Firestore
+            window.parent.postMessage({ type: 'syncQuestionToFirestore', record }, '*');
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const chatbot = document.querySelector('flowise-fullchatbot');
             if (chatbot) {
-                // 監聽 Flowise 元件的 'message' 事件
                 chatbot.addEventListener('message', (event) => {
                     const message = event.detail;
-                    // 只關心使用者訊息
                     if (message && message.role === 'user' && message.text) {
-                        console.log('💬 攔截到使用者問題:', message.text);
-                        const payload = {
-                            question: message.text,
-                            timestamp: Date.now()
-                        };
-                        try {
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-                            console.log('💾 已將問題寫入 LocalStorage');
-                        } catch (e) {
-                            console.error('❌ 寫入 LocalStorage 失敗:', e);
-                        }
+                        interceptUserMessage(message.text);
                     }
                 });
             }
