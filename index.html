@@ -656,7 +656,8 @@
             createUserWithEmailAndPassword, 
             signInWithEmailAndPassword, 
             signOut, 
-            onAuthStateChanged 
+            onAuthStateChanged,
+            sendEmailVerification // 新增
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -684,6 +685,10 @@
         window.currentUser = null;
         window.userData = null;
         let isLoginMode = true;
+
+        // 新增：全局暫存 email for resend
+        let lastRegisterUser = null;
+        let lastLoginUser = null;
 
         // 切換登入/註冊模式
         document.getElementById('switchLink').addEventListener('click', function() {
@@ -718,6 +723,13 @@
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                lastLoginUser = userCredential.user;
+                if (!userCredential.user.emailVerified) {
+                    await signOut(auth);
+                    showError('請先至信箱完成驗證，然後再登入。');
+                    showResendVerifyBtn('login');
+                    return;
+                }
                 console.log('登入成功:', userCredential.user);
             } catch (error) {
                 console.error('登入錯誤:', error);
@@ -744,11 +756,13 @@
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                lastRegisterUser = userCredential.user;
                 console.log('註冊成功:', userCredential.user);
-                
-                // 創建用戶資料
-                await createUserData(userCredential.user.uid, email);
-                showSuccess('註冊成功！正在為您登入...');
+                // 新增：寄送驗證信
+                await sendEmailVerification(userCredential.user);
+                showSuccess('註冊成功！驗證信已寄出，請至信箱點擊驗證連結。驗證後再登入。');
+                showResendVerifyBtn('register');
+                await signOut(auth);
             } catch (error) {
                 console.error('註冊錯誤:', error);
                 showError(getFirebaseErrorMessage(error.code));
@@ -1196,6 +1210,43 @@
                 'auth/invalid-credential': '登入憑證無效，請檢查電子郵件和密碼'
             };
             return errorMessages[errorCode] || '發生未知錯誤，請稍後再試';
+        }
+
+        // 新增：顯示重新寄送驗證信按鈕
+        function showResendVerifyBtn(mode) {
+            let btnId = 'resendVerifyBtn';
+            let container = null;
+            if (mode === 'register') {
+                container = document.getElementById('successMessage');
+            } else {
+                container = document.getElementById('errorMessage');
+            }
+            if (!document.getElementById(btnId)) {
+                const btn = document.createElement('button');
+                btn.id = btnId;
+                btn.textContent = '重新寄送驗證信';
+                btn.className = 'auth-btn auth-btn-secondary';
+                btn.style.marginTop = '10px';
+                btn.onclick = async function() {
+                    btn.disabled = true;
+                    btn.textContent = '寄送中...';
+                    try {
+                        let user = mode === 'register' ? lastRegisterUser : lastLoginUser;
+                        if (!user) {
+                            showError('請重新填寫帳號密碼再寄送驗證信');
+                            return;
+                        }
+                        await sendEmailVerification(user);
+                        showSuccess('驗證信已重新寄出，請至信箱查收。');
+                    } catch (e) {
+                        showError('寄送失敗，請稍後再試');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = '重新寄送驗證信';
+                    }
+                };
+                container.appendChild(btn);
+            }
         }
 
         // 將 Firebase 函數綁定到全局範圍以供其他腳本使用
