@@ -429,16 +429,13 @@
         // 處理用戶問題（發送後檢查和記錄）
         async function handleUserQuestion(questionText) {
             console.log('🔍 處理用戶問題:', questionText.substring(0, 30) + '...');
-            
             try {
                 // 檢查次數是否足夠
                 if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
                     const hasCredit = await window.parent.checkQuestionLimit();
-                    
                     if (!hasCredit) {
                         console.log('❌ 次數不足，顯示警告');
                         showUsageWarning();
-                        
                         // 清空當前輸入框（如果有的話）
                         const chatbotElement = document.querySelector('.custom-chatbot');
                         const inputElement = chatbotElement?.shadowRoot?.querySelector('input[type="text"], textarea');
@@ -448,12 +445,8 @@
                         }
                         return;
                     }
-                    
-                    // 次數足夠，扣除點數並記錄
-                    console.log('✅ 次數足夠，扣除點數');
-                    if (typeof window.parent.consumeQuestionCredit === 'function') {
-                        await window.parent.consumeQuestionCredit(questionText);
-                    }
+                    // 次數足夠，通知 parent 記錄問題
+                    window.parent.postMessage({ type: "userQuestion", question: questionText }, "*");
                 }
             } catch (error) {
                 console.error('❌ 處理用戶問題時發生錯誤:', error);
