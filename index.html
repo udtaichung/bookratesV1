@@ -929,24 +929,126 @@
             }
         };
 
-        // 簡化的記錄生成函數 - 只要時間8碼和前6個字
-        function generateSimpleLog(questionText) {
-            const now = new Date();
+        // 檢查問題次數（不扣除）
+        window.checkQuestionLimit = async function() {
+            console.log('=== 檢查問題次數（發送前） ===');
             
-            // 格式：MMDDHHMI (月日時分，共8碼)
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hour = String(now.getHours()).padStart(2, '0');
-            const minute = String(now.getMinutes()).padStart(2, '0');
+            if (!window.currentUser || !window.userData) {
+                console.error('用戶未登入或資料未載入');
+                return false;
+            }
+
+            // 重新從資料庫獲取最新資料，防止客戶端數據被篡改
+            try {
+                const userDoc = await getDoc(doc(db, 'users', window.currentUser.uid));
+                if (userDoc.exists()) {
+                    const latestData = userDoc.data();
+                    window.userData.questionsLeft = latestData.questionsLeft || 0;
+                    window.userData.extraCredits = latestData.extraCredits || 0;
+                    window.userData.totalQuestions = latestData.totalQuestions || 0;
+                    updateUsageDisplay();
+                }
+            } catch (error) {
+                console.error('獲取最新資料失敗:', error);
+            }
+
+            let questionsLeft = window.userData.questionsLeft || 0;
+            let extraCredits = window.userData.extraCredits || 0;
+            let totalAvailable = questionsLeft + extraCredits;
             
-            // 提取問題前6個字（去除空格和特殊符號）
-            const cleanText = questionText.replace(/\s+/g, '').replace(/[^\u4e00-\u9fa5\w]/g, '');
-            const shortText = cleanText.substring(0, 6) || '未知問題';
+            console.log('當前可用次數檢查:', { 
+                email: window.currentUser.email,
+                questionsLeft, 
+                extraCredits,
+                totalAvailable
+            });
+
+            if (totalAvailable <= 0) {
+                console.log('❌ 次數不足，禁止發送');
+                return false;
+            }
+
+            console.log('✅ 次數充足，允許發送');
+            return true;
+        };
+
+        // 實際扣除次數的函數（確認發送後才調用）
+        window.consumeQuestionCredit = async function(questionText = '') {
+            console.log('=== 確認發送，扣除次數 ===');
             
-            const logId = `${month}${day}${hour}${minute}-${shortText}`;
+            if (!window.currentUser || !window.userData) {
+                console.error('用戶未登入或資料未載入');
+                return false;
+            }
+
+            // 再次檢查次數（雙重保險）
+            const hasCredit = await window.checkQuestionLimit();
+            if (!hasCredit) {
+                console.log('❌ 二次檢查發現次數不足');
+                return false;
+            }
+
+            let questionsLeft = window.userData.questionsLeft || 0;
+            let extraCredits = window.userData.extraCredits || 0;
+            let totalQuestions = window.userData.totalQuestions || 0;
             
-            return logId; // 直接返回字串，不用物件
-        }
+            // 決定扣除哪種次數
+            let newQuestionsLeft = questionsLeft;
+            let newExtraCredits = extraCredits;
+            
+            if (questionsLeft > 0) {
+                newQuestionsLeft = questionsLeft - 1;
+                console.log('✅ 扣除一般次數，從', questionsLeft, '變為', newQuestionsLeft);
+            } else {
+                newExtraCredits = extraCredits - 1;
+                console.log('✅ 扣除額外次數，從', extraCredits, '變為', newExtraCredits);
+            }
+
+            // 增加總發問次數並生成記錄
+            const newTotalQuestions = totalQuestions + 1;
+            const logEntry = generateSimpleLog(questionText);
+            
+            console.log('📝 使用記錄:', logEntry);
+
+            // 更新資料庫
+            try {
+                const updateData = {
+                    questionsLeft: newQuestionsLeft,
+                    extraCredits: newExtraCredits,
+                    totalQuestions: newTotalQuestions,
+                    lastUsed: serverTimestamp()
+                };
+
+                // 添加使用記錄（只保留最近24筆）
+                const currentLogs = window.userData.usageLogs || [];
+                const newLogs = [logEntry, ...currentLogs].slice(0, 24);
+                updateData.usageLogs = newLogs;
+
+                await updateDoc(doc(db, 'users', window.currentUser.uid), updateData);
+
+                // 更新本地資料
+                window.userData.questionsLeft = newQuestionsLeft;
+                window.userData.extraCredits = newExtraCredits;
+                window.userData.totalQuestions = newTotalQuestions;
+                window.userData.usageLogs = newLogs;
+                updateUsageDisplay();
+                
+                console.log('✅ 次數扣除成功:', { 
+                    questionsLeft: newQuestionsLeft, 
+                    extraCredits: newExtraCredits,
+                    totalQuestions: newTotalQuestions,
+                    logEntry: logEntry
+                });
+                return true;
+                
+            } catch (error) {
+                console.error('❌ 扣除次數失敗:', error);
+                return false;
+            }
+        };
+
+        // 保持向後兼容
+        window.consumeQuestion = window.checkQuestionLimit;
 
         // 更新使用次數顯示
         function updateUsageDisplay() {
