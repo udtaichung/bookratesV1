@@ -762,18 +762,17 @@
             const today = new Date().toISOString().split('T')[0];
             const userData = {
                 email: email,
-                level: 5,
-                dailyQuestions: 10,
-                questionsLeft: 10,
+                level: 3, // 預設 lv3
+                dailyQuestions: 5, // 每日補充: 5
+                questionsLeft: 5, // 剩餘次數 5 (等同於當天已補滿)
                 extraCredits: 0,
-                totalQuestions: 0,           // 歷史總發問次數
-                usageLogs: [],               // 使用記錄陣列（簡化格式）
+                totalQuestions: 0,
+                usageLogs: [],
                 lastReset: today,
                 lastUsed: serverTimestamp(),
                 createdAt: serverTimestamp(),
                 isAdmin: email === 'ud.taichung.chatgpt@gmail.com'
             };
-
             try {
                 await setDoc(doc(db, 'users', userId), userData);
                 console.log('用戶資料創建成功:', userData);
@@ -852,21 +851,44 @@
             const lastReset = window.userData.lastReset;
 
             if (lastReset !== today) {
-                // 需要重置每日次數
-                const updateData = {
-                    questionsLeft: window.userData.dailyQuestions,
-                    lastReset: today
-                };
+                let dailyQuestions = window.userData.dailyQuestions || 5; // 注意預設值為 5
+                if (window.userData.level === 5) {
+                    dailyQuestions = 0; // lv5 日配額為 0
+                }
+
+                const prevQuestionsLeft = window.userData.questionsLeft || 0;
+                let newQuestionsLeft = dailyQuestions + prevQuestionsLeft;
+
+                // 防止超過最大限制
+                const maxQuestions = getMaxQuestionsByLevel(window.userData.level || 3);
+                if (newQuestionsLeft > maxQuestions) {
+                    newQuestionsLeft = maxQuestions;
+                }
 
                 try {
-                    await updateDoc(doc(db, 'users', userId), updateData);
-                    window.userData.questionsLeft = window.userData.dailyQuestions;
+                    await updateDoc(doc(db, 'users', userId), {
+                        questionsLeft: newQuestionsLeft,
+                        lastReset: today
+                    });
+                    window.userData.questionsLeft = newQuestionsLeft;
                     window.userData.lastReset = today;
                     updateUsageDisplay();
                     console.log('每日次數已重置');
                 } catch (error) {
                     console.error('重置每日次數錯誤:', error);
                 }
+            }
+        }
+
+        // 獲取每個等級的最大可用次數
+        function getMaxQuestionsByLevel(level) {
+            switch (level) {
+                case 1: return 50;
+                case 2: return 20;
+                case 3: return 10;
+                case 4: return 5;
+                case 5: return 5;
+                default: return 10;
             }
         }
 
@@ -1093,9 +1115,12 @@
         // 更新使用次數顯示
         function updateUsageDisplay() {
             if (!window.userData) return;
-            document.getElementById('userLevel').textContent = window.userData.level || 5;
+            // 顯示用戶等級，預設為 3
+            document.getElementById('userLevel').textContent = window.userData.level || 3;
+            // 取得剩餘次數與額外次數
             const questionsLeft = window.userData.questionsLeft || 0;
             const extraCredits = window.userData.extraCredits || 0;
+            // totalQuestions 實際顯示為 questionsLeft + extraCredits
             document.getElementById('totalQuestions').textContent = questionsLeft + extraCredits;
         }
 
