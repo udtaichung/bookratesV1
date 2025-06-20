@@ -1097,16 +1097,13 @@
         // 查看使用記錄
         window.viewUsageLogs = function(userId) {
             console.log('📊 查看使用記錄:', userId);
-            
             const user = allUsers.find(u => u.id === userId);
             if (!user) {
                 console.error('找不到用戶:', userId);
                 showPanelMessage('找不到指定用戶', 'error');
                 return;
             }
-
             const logs = user.usageLogs || [];
-            
             // 創建記錄查看彈窗
             const modal = document.createElement('div');
             modal.id = 'usageLogsModal';
@@ -1123,7 +1120,6 @@
                 align-items: center;
                 font-family: 'Microsoft JhengHei', Arial, sans-serif;
             `;
-            
             const content = document.createElement('div');
             content.style.cssText = `
                 background: white; 
@@ -1135,7 +1131,6 @@
                 overflow-y: auto;
                 box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
             `;
-            
             let logsHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="margin: 0; color: #1a365d; font-size: 24px;">
@@ -1152,147 +1147,41 @@
                         font-size: 18px;
                         display: flex;
                         align-items: center;
-                        justify-content: center;
-                    ">×</button>
+                        justify-content: center;">×</button>
                 </div>
-                
-                <div style="
-                    background: linear-gradient(145deg, #f0f8ff, #e6f3ff); 
-                    padding: 20px; 
-                    border-radius: 10px; 
-                    margin-bottom: 25px;
-                    border: 2px solid #00ff88;
-                ">
+                <div style="background: linear-gradient(145deg, #f0f8ff, #e6f3ff); padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 2px solid #00ff88;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
-                        <div>
-                            <div style="font-size: 28px; font-weight: bold; color: #00ff88;">${user.totalQuestions || 0}</div>
-                            <div style="color: #666; font-size: 14px;">累計發問</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: bold; color: #2196f3;">${logs.length}</div>
-                            <div style="color: #666; font-size: 14px;">記錄筆數</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: bold; color: #ff9800;">${user.questionsLeft || 0}</div>
-                            <div style="color: #666; font-size: 14px;">剩餘次數</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 28px; font-weight: bold; color: #9c27b0;">${user.extraCredits || 0}</div>
-                            <div style="color: #666; font-size: 14px;">額外點數</div>
-                        </div>
+                        <div><div style="font-size: 28px; font-weight: bold; color: #00ff88;">${user.totalQuestions || 0}</div><div style="color: #666; font-size: 14px;">累計發問</div></div>
+                        <div><div style="font-size: 28px; font-weight: bold; color: #2196f3;">${logs.length}</div><div style="color: #666; font-size: 14px;">記錄筆數</div></div>
+                        <div><div style="font-size: 28px; font-weight: bold; color: #ff9800;">${user.questionsLeft || 0}</div><div style="color: #666; font-size: 14px;">剩餘次數</div></div>
+                        <div><div style="font-size: 28px; font-weight: bold; color: #9c27b0;">${user.extraCredits || 0}</div><div style="color: #666; font-size: 14px;">額外點數</div></div>
                     </div>
                 </div>
             `;
-            
             if (logs.length === 0) {
-                logsHtml += `
-                    <div style="
-                        text-align: center; 
-                        padding: 40px; 
-                        color: #999; 
-                        background: #f9f9f9; 
-                        border-radius: 10px;
-                        border: 2px dashed #ddd;
-                    ">
-                        <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
-                        <div style="font-size: 18px; margin-bottom: 10px;">尚無使用記錄</div>
-                        <div style="font-size: 14px;">此用戶還沒有發問過任何問題</div>
-                    </div>
-                `;
+                logsHtml += `<div style="text-align: center; padding: 40px; color: #999; background: #f9f9f9; border-radius: 10px; border: 2px dashed #ddd;"><div style="font-size: 48px; margin-bottom: 20px;">📝</div><div style="font-size: 18px; margin-bottom: 10px;">尚無使用記錄</div><div style="font-size: 14px;">此用戶還沒有發問過任何問題</div></div>`;
             } else {
-                logsHtml += `
-                    <div style="
-                        background: #f9f9f9; 
-                        padding: 15px; 
-                        border-radius: 8px; 
-                        margin-bottom: 20px;
-                        border-left: 4px solid #00ff88;
-                    ">
-                        <h4 style="margin: 0 0 10px 0; color: #333; display: flex; align-items: center;">
-                            <span style="margin-right: 10px;">ℹ️</span>
-                            記錄格式說明
-                        </h4>
-                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 14px; color: #666;">
-                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">MMDDHHMI-問題前6字</code></div>
-                            <div>月日時分-問題前6個字</div>
-                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">06201120-防火門開啟規</code></div>
-                            <div>6月20日11:20 問「防火門開啟規定」</div>
-                        </div>
+                logsHtml += `<div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 10px; max-height: 400px; overflow-y: auto;">
+                    <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                        ${logs.map(log => {
+                            // 直接顯示，分行
+                            const [time, ...rest] = log.split('\n');
+                            const question = rest.join('\n');
+                            return `<div style="background: #f8f9fa; padding: 10px 14px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; color: #222; border-left: 4px solid #00ff88; margin-bottom: 2px;">
+                                <div style="font-weight:bold; color:#1a365d;">${time}</div>
+                                <div style="white-space: pre-line;">${question}</div>
+                            </div>`;
+                        }).join('')}
                     </div>
-                    
-                    <div style="
-                        background: #fff; 
-                        border: 2px solid #e0e0e0; 
-                        border-radius: 10px; 
-                        max-height: 400px; 
-                        overflow-y: auto;
-                    ">
-                        <div style="
-                            padding: 20px; 
-                            display: grid; 
-                            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
-                            gap: 12px;
-                        ">
-                `;
-                
-                // 顯示記錄，最新的在前面
-                logs.forEach((log, index) => {
-                    // 解析記錄以決定顏色
-                    const isRecent = index < 5; // 最近5筆記錄用不同顏色
-                    const bgColor = isRecent ? '#e8f5e8' : '#f8f9fa';
-                    const borderColor = isRecent ? '#4caf50' : '#e0e0e0';
-                    const textColor = isRecent ? '#2e7d32' : '#333';
-                    
-                    logsHtml += `
-                        <div style="
-                            background: ${bgColor}; 
-                            padding: 10px; 
-                            border-radius: 6px; 
-                            font-family: 'Courier New', monospace; 
-                            font-size: 13px; 
-                            text-align: center;
-                            border: 2px solid ${borderColor};
-                            color: ${textColor};
-                            font-weight: ${isRecent ? 'bold' : 'normal'};
-                            position: relative;
-                            transition: transform 0.2s ease;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            ${log}
-                            ${isRecent ? '<div style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center;">新</div>' : ''}
-                        </div>
-                    `;
-                });
-                
-                logsHtml += '</div></div>';
+                </div>`;
             }
-            
-            logsHtml += `
-                <div style="
-                    display: flex; 
-                    justify-content: space-between; 
-                    align-items: center; 
-                    margin-top: 25px; 
-                    padding-top: 20px; 
-                    border-top: 2px solid #e0e0e0;
-                ">
-                    <div style="font-size: 12px; color: #666;">
-                        💡 提示：最近5筆記錄會以綠色高亮顯示
-                    </div>
-                    <div>
-                        <button class="btn btn-secondary" onclick="closeUsageLogsModal()" style="margin-right: 10px;">
-                            關閉
-                        </button>
-                        <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">
-                            📄 匯出記錄
-                        </button>
-                    </div>
-                </div>
-            `;
-            
+            logsHtml += `<div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                <button class="btn btn-secondary" onclick="closeUsageLogsModal()" style="margin-right: 10px;">關閉</button>
+                <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">📄 匯出記錄</button>
+            </div>`;
             content.innerHTML = logsHtml;
             modal.appendChild(content);
             document.body.appendChild(modal);
-            
             console.log('✅ 使用記錄彈窗已顯示');
         };
 
