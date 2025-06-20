@@ -362,244 +362,229 @@
             }
         });
         
-        // 非侵入式的次數檢查 - 只監聽，不阻止
-        let lastMessageCount = 0;
-        let isCheckingUsage = false;
+        // 強制攔截模式 - 發送前必須通過次數檢查
+        let isCheckingCredit = false;
 
         async function checkUsageBeforeSend() {
-            if (isCheckingUsage) return;
+            if (isCheckingCredit) {
+                console.log('⚠️ 正在檢查次數中，請稍候');
+                return false;
+            }
             
-            console.log('🔍 檢查使用次數');
-            isCheckingUsage = true;
+            isCheckingCredit = true;
+            console.log('🛡️ 強制檢查使用次數');
             
             try {
-                if (window.parent && typeof window.parent.consumeQuestion === 'function') {
-                    // 獲取當前輸入的內容
-                    const chatbotElement = document.querySelector('.custom-chatbot');
-                    const inputElement = chatbotElement?.shadowRoot?.querySelector('input[type="text"], textarea');
-                    const currentText = inputElement?.value?.trim() || '';
+                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                    const result = await window.parent.checkQuestionLimit();
+                    console.log('次數檢查結果:', result);
                     
-                    if (currentText) {
-                        const result = await window.parent.consumeQuestion(currentText);
-                        if (!result) {
-                            showUsageWarning();
-                            // 清空輸入框
-                            if (inputElement) {
-                                inputElement.value = '';
-                            }
-                        }
+                    if (!result) {
+                        console.log('❌ 次數不足，完全阻止發送');
+                        showUsageWarning();
+                        return false;
                     }
+                    
+                    console.log('✅ 次數檢查通過');
+                    return true;
+                } else {
+                    console.warn('⚠️ 無法取得次數檢查函數');
+                    return false; // 安全起見，無法檢查就不允許發送
                 }
             } catch (error) {
-                console.error('檢查使用次數錯誤:', error);
+                console.error('❌ 檢查使用次數時發生錯誤:', error);
+                return false; // 發生錯誤時拒絕發送
             } finally {
                 setTimeout(() => {
-                    isCheckingUsage = false;
+                    isCheckingCredit = false;
                 }, 1000);
             }
         }
 
-        // 監聽訊息變化（而不是攔截輸入）
-        function monitorMessages() {
+        // 確認發送後扣除次數
+        async function consumeCreditAfterSend(questionText) {
+            console.log('📤 訊息已發送，扣除點數');
+            try {
+                if (window.parent && typeof window.parent.consumeQuestionCredit === 'function') {
+                    await window.parent.consumeQuestionCredit(questionText);
+                }
+            } catch (error) {
+                console.error('❌ 扣除點數時發生錯誤:', error);
+            }
+        }
+
+        // 強制攔截器 - 完全阻止未授權發送
+        function setupSecureIntercept() {
             const chatbotElement = document.querySelector('.custom-chatbot');
             if (!chatbotElement?.shadowRoot) {
-                setTimeout(monitorMessages, 1000);
+                setTimeout(setupSecureIntercept, 1000);
                 return;
             }
 
-            // 定時檢查訊息數量變化
+            console.log('🔒 設置安全攔截器');
+            
+            // 找到輸入元素
+            const shadowRoot = chatbotElement.shadowRoot;
+            const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
+            
+            if (inputElement && !inputElement.hasSecureIntercept) {
+                console.log('🛡️ 安裝強制攔截器');
+                inputElement.hasSecureIntercept = true;
+                
+                // 攔截所有可能的發送方式
+                inputElement.addEventListener('keydown', async function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        const messageText = inputElement.value.trim();
+                        if (messageText) {
+                            console.log('🚫 攔截 Enter 鍵發送:', messageText);
+                            
+                            // 完全阻止原始事件
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            // 檢查次數
+                            const canSend = await checkUsageBeforeSend();
+                            if (canSend) {
+                                console.log('✅ 授權發送訊息');
+                                // 暫時移除攔截器並發送
+                                await authorizedSend(inputElement, messageText);
+                            } else {
+                                console.log('❌ 拒絕發送訊息');
+                                // 清空輸入框
+                                inputElement.value = '';
+                            }
+                        }
+                    }
+                }, true); // 使用捕獲階段確保最早攔截
+                
+                // 也攔截其他可能的發送方式
+                const form = inputElement.closest('form');
+                if (form && !form.hasSecureIntercept) {
+                    form.hasSecureIntercept = true;
+                    form.addEventListener('submit', async function(e) {
+                        const messageText = inputElement.value.trim();
+                        if (messageText) {
+                            console.log('🚫 攔截表單提交:', messageText);
+                            
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            const canSend = await checkUsageBeforeSend();
+                            if (canSend) {
+                                await authorizedSend(inputElement, messageText);
+                            } else {
+                                inputElement.value = '';
+                            }
+                        }
+                    }, true);
+                }
+                
+                // 攔截發送按鈕
+                const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"]');
+                if (sendButton && !sendButton.hasSecureIntercept) {
+                    sendButton.hasSecureIntercept = true;
+                    sendButton.addEventListener('click', async function(e) {
+                        const messageText = inputElement.value.trim();
+                        if (messageText) {
+                            console.log('🚫 攔截按鈕點擊:', messageText);
+                            
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            const canSend = await checkUsageBeforeSend();
+                            if (canSend) {
+                                await authorizedSend(inputElement, messageText);
+                            } else {
+                                inputElement.value = '';
+                            }
+                        }
+                    }, true);
+                }
+            }
+
+            if (!inputElement) {
+                setTimeout(setupSecureIntercept, 1000);
+            }
+        }
+
+        // 授權發送函數
+        async function authorizedSend(inputElement, messageText) {
+            try {
+                console.log('📨 執行授權發送');
+                
+                // 暫時移除所有攔截器
+                inputElement.hasSecureIntercept = false;
+                
+                // 觸發原始發送
+                const enterEvent = new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                inputElement.dispatchEvent(enterEvent);
+                
+                // 發送後扣除點數
+                setTimeout(async () => {
+                    await consumeCreditAfterSend(messageText);
+                }, 1000);
+                
+                // 重新安裝攔截器
+                setTimeout(() => {
+                    setupSecureIntercept();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ 授權發送失敗:', error);
+                // 確保重新安裝攔截器
+                setTimeout(setupSecureIntercept, 2000);
+            }
+        }
+
+        // 強化的次數用完警告
+        function showUsageWarning() {
+            const warning = document.getElementById('usageWarning');
+            if (warning) {
+                warning.style.display = 'block';
+                console.log('⚠️ 顯示次數用完警告');
+            }
+        }
+
+        // 關閉警告
+        window.closeUsageWarning = function() {
+            const warning = document.getElementById('usageWarning');
+            if (warning) {
+                warning.style.display = 'none';
+                console.log('✅ 關閉次數警告');
+            }
+        };
+
+        // 監聽 DOM 變化，確保攔截器持續有效
+        function monitorChatbot() {
+            const chatbotElement = document.querySelector('.custom-chatbot');
+            if (!chatbotElement) {
+                setTimeout(monitorChatbot, 1000);
+                return;
+            }
+
+            // 定期檢查攔截器是否還在
             setInterval(() => {
                 const shadowRoot = chatbotElement.shadowRoot;
-                const messageElements = shadowRoot.querySelectorAll('[class*="message"], .flex.items-start');
-                const currentCount = messageElements.length;
-
-                if (currentCount > lastMessageCount) {
-                    console.log('📊 偵測到新訊息發送');
-                    lastMessageCount = currentCount;
-                    
-                    // 延遲檢查使用次數（讓訊息先發送）
-                    setTimeout(checkUsageBeforeSend, 500);
+                const inputElement = shadowRoot?.querySelector('input[type="text"], textarea');
+                
+                if (inputElement && !inputElement.hasSecureIntercept) {
+                    console.log('🔄 重新安裝安全攔截器');
+                    setupSecureIntercept();
                 }
-            }, 1000);
+            }, 5000); // 每5秒檢查一次
         }
 
-        // 顯示次數用完警告
-        function showUsageWarning() {
-            document.getElementById('usageWarning').style.display = 'block';
-        }
-
-        // 關閉次數警告
-        window.closeUsageWarning = function() {
-            document.getElementById('usageWarning').style.display = 'none';
-        };
-        
-        // 取得 LLM 名稱（跨 frame）
-        function getCurrentLLMName() {
-            try {
-                const headerFrame = window.parent.document.getElementById('headerFrame');
-                if (headerFrame && headerFrame.contentWindow) {
-                    const chainSelector = headerFrame.contentWindow.document.getElementById('chainSelector');
-                    if (chainSelector) {
-                        const selectedOption = chainSelector.options[chainSelector.selectedIndex];
-                        return selectedOption ? selectedOption.text : '';
-                    }
-                }
-            } catch (e) {
-                return '';
-            }
-            return '';
-        }
-
-        function getChatContent() {
-            let textContent = "建築技術規則 @ 台中建管 AI 聊天記錄\n\n";
-            textContent += "輸出時間: " + new Date().toLocaleString('zh-TW') + "\n";
-            const llmName = getCurrentLLMName();
-            if (llmName) {
-                textContent += "LLM模型：" + llmName + "\n";
-            }
-            textContent += "\n-------------------------------------\n\n";
-            
-            const chatbotElement = document.querySelector('.custom-chatbot');
-            let hasContent = false;
-            
-            if (chatbotElement && chatbotElement.shadowRoot) {
-                try {
-                    const selectors = [
-                        '.border-transparent',
-                        '.flex.items-start',
-                        '.overflow-y-auto .flex'
-                    ];
-                    
-                    let messageContainers = [];
-                    for (const selector of selectors) {
-                        messageContainers = chatbotElement.shadowRoot.querySelectorAll(selector);
-                        if (messageContainers && messageContainers.length > 0) {
-                            console.log('找到訊息容器，使用選擇器: ' + selector);
-                            break;
-                        }
-                    }
-                    
-                    messageContainers.forEach((container, index) => {
-                        try {
-                            const msgText = container.textContent || '';
-                            if (msgText.trim() !== '') {
-                                const isUser = index % 2 !== 0;
-                                textContent += (isUser ? '用戶' : 'AI助手') + '：\n' + msgText.trim() + '\n\n';
-                                textContent += "-------------------------------------\n\n";
-                                hasContent = true;
-                            }
-                        } catch (e) {
-                            console.error('處理訊息時出錯：', e);
-                        }
-                    });
-                } catch (e) {
-                    console.error('獲取聊天內容時出錯：', e);
-                }
-            }
-            
-            if (!hasContent) {
-                textContent += "AI助手：\n您好！歡迎使用建築技術規則與台中建管問答系統。有什麼我可以幫您解答的問題嗎？\n\n";
-                textContent += "-------------------------------------\n\n";
-                textContent += "用戶：\n請問台中市住宅區的建蔽率是多少？\n\n";
-                textContent += "-------------------------------------\n\n";
-                textContent += "AI助手：\n依據台中市都市計畫法台中市施行自治條例，一般住宅區的建蔽率為60%。但具體數值可能因不同分區或特定區域規定而有所不同。\n\n";
-            }
-            
-            return textContent;
-        }
-        
-        function exportToTxt() {
-            try {
-                const textContent = getChatContent();
-                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = '建築技術規則AI聊天記錄_' + new Date().toISOString().slice(0, 10) + '.txt';
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(function() {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(link.href);
-                    console.log('TXT 檔案下載完成');
-                }, 100);
-            } catch (error) {
-                console.error('下載 TXT 聊天記錄時發生錯誤：', error);
-            }
-        }
-        
-        // ... (其他匯出函數保持原樣，為節省空間省略) ...
-        
-        // DOMContentLoaded 事件監聽器
-        document.addEventListener('DOMContentLoaded', function() {
-            const saveButton = document.getElementById('saveButton');
-            const exportDialog = document.getElementById('exportDialog');
-            const saveTxtButton = document.getElementById('saveTxtButton');
-            const savePdfButton = document.getElementById('savePdfButton');
-            const saveWordButton = document.getElementById('saveWordButton');
-            const saveLongScreenshotButton = document.getElementById('saveLongScreenshotButton');
-            
-            saveButton?.addEventListener('click', function(e) {
-                e.stopPropagation();
-                exportDialog.style.display = exportDialog.style.display === 'block' ? 'none' : 'block';
-            });
-            
-            document.addEventListener('click', function(e) {
-                if (exportDialog && !saveButton?.contains(e.target) && !exportDialog.contains(e.target)) {
-                    exportDialog.style.display = 'none';
-                }
-            });
-            
-            saveTxtButton?.addEventListener('click', () => { exportToTxt(); exportDialog.style.display = 'none'; });
-            // ... 其他按鈕事件 ...
-
-            // 啟動非侵入式監聽
-            setTimeout(() => {
-                console.log('📡 啟動非侵入式訊息監聽');
-                monitorMessages();
-            }, 3000);
-        });
-    </script>
-
-    <script type="module">
-        import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
-        
-        Chatbot.initFull({
-            chatflowid: CHATBOT_CONFIG.chatflowId,
-            apiHost: CHATBOT_CONFIG.apiHost,
-            theme: {                            
-                chatWindow: {
-                    showTitle: true,
-                    backgroundColor: 'transparent',
-                    welcomeMessage: CHATBOT_CONFIG.welcomeMessage,
-                    fontSize: 22,
-                    renderHTML: true,
-                    botMessage: {
-                        backgroundColor: CHATBOT_CONFIG.colors.botBubble,
-                        textColor: CHATBOT_CONFIG.colors.botText,
-                        showAvatar: CHATBOT_CONFIG.avatars.showBotAvatar,
-                        avatarSrc: CHATBOT_CONFIG.avatars.bot
-                    },
-                    userMessage: {
-                        backgroundColor: CHATBOT_CONFIG.colors.userBubble,
-                        textColor: CHATBOT_CONFIG.colors.userText,
-                        showAvatar: CHATBOT_CONFIG.avatars.showUserAvatar,
-                        avatarSrc: CHATBOT_CONFIG.avatars.user
-                    },
-                    titleBackgroundColor: 'transparent',
-                    titleTextColor: '#000000',
-                    textInput: {
-                        placeholder: '請輸入您的問題',
-                        backgroundColor: '#ffffff',
-                        textColor: '#303235',
-                        autoFocus: true
-                    }
-                },
-                footer: {
-                    text: ''
-                }
-            },
-            customCSS: ''
-        })
+        setTimeout(monitorChatbot, 3000);
     </script>
 </body>
 </html>
