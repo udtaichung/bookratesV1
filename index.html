@@ -1283,6 +1283,14 @@
         window.getDoc = getDoc;
         window.doc = doc;
         window.updateDoc = updateDoc;
+
+        // 監聽 chatFrame 傳來的 userQuestion 訊息，收到時立即記錄問題
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
+                // 只記錄使用者輸入的問題
+                window.consumeQuestionCredit(event.data.question);
+            }
+        });
     </script>
 
     <script>
