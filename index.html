@@ -1206,32 +1206,6 @@
             }, 5000);
         }
 
-        // 顯示成功訊息
-        function showSuccess(message, withVerifyBtn = false) {
-            const successDiv = document.getElementById('successMessage');
-            successDiv.innerHTML = message;
-            successDiv.style.display = 'block';
-            if (withVerifyBtn) {
-                if (!document.getElementById('verifiedBtn')) {
-                    const btn = document.createElement('button');
-                    btn.id = 'verifiedBtn';
-                    btn.textContent = '已點選驗證，前往登入';
-                    btn.className = 'auth-btn auth-btn-primary';
-                    btn.style.marginTop = '10px';
-                    btn.onclick = function() {
-                        // 關閉成功訊息，切換回登入畫面
-                        successDiv.style.display = 'none';
-                        document.getElementById('registerForm').style.display = 'none';
-                        document.getElementById('loginForm').style.display = 'block';
-                        document.getElementById('switchText').textContent = '還沒有帳號？';
-                        document.getElementById('switchLink').textContent = '立即註冊';
-                        isLoginMode = true;
-                    };
-                    successDiv.appendChild(btn);
-                }
-            }
-        }
-
         // 清除訊息
         function clearMessages() {
             document.getElementById('errorMessage').style.display = 'none';
