@@ -491,11 +491,6 @@
                         <option value="3">等級 3</option>
                         <option value="4">等級 4</option>
                         <option value="5">等級 5</option>
-                        <option value="6">等級 6</option>
-                        <option value="7">等級 7</option>
-                        <option value="8">等級 8</option>
-                        <option value="9">等級 9</option>
-                        <option value="10">等級 10</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -731,14 +726,15 @@
                 return;
             }
             const level = parseInt(document.getElementById('editUserLevel').value);
+            // 只允許 1-5 級
+            if (isNaN(level) || level < 1 || level > 5) {
+                showPanelMessage('等級必須在 1-5 之間', 'error');
+                return;
+            }
             // 根據等級取得 dailyQuestions
             const dailyQuestions = getDailyQuestionsByLevel(level);
             const questionsLeft = parseInt(document.getElementById('editUserQuestionsLeft').value);
             const extraCredits = parseInt(document.getElementById('editUserExtraCredits').value);
-            if (isNaN(level) || level < 1 || level > 10) {
-                showPanelMessage('等級必須在 1-10 之間', 'error');
-                return;
-            }
             if (isNaN(dailyQuestions) || dailyQuestions < 0 || dailyQuestions > 100) {
                 showPanelMessage('每日問題次數必須在 0-100 之間', 'error');
                 return;
@@ -812,8 +808,9 @@
             const targetLevel = document.getElementById('batchLevelSelect').value;
             const creditsToAdd = parseInt(document.getElementById('batchLevelCredits').value) || 0;
 
-            if (!targetLevel) {
-                showPanelMessage('請選擇要調整的等級', 'warning');
+            // 調整為只處理 1～5 級
+            if (!targetLevel || parseInt(targetLevel) < 1 || parseInt(targetLevel) > 5) {
+                showPanelMessage('請選擇有效的等級 (1～5)', 'warning');
                 return;
             }
 
