@@ -1237,7 +1237,7 @@
                             return;
                         }
                         await sendEmailVerification(user);
-                        showSuccess('驗證信已重新寄出，請至信箱查收。');
+                        showSuccess('驗證信已重新寄出，請至信箱（包含垃圾郵件夾）查收。');
                     } catch (e) {
                         showError('寄送失敗，請稍後再試');
                     } finally {
