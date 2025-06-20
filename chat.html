@@ -202,6 +202,54 @@
             border-top: 1px solid #eee;
             padding-top: 10px;
         }
+
+        /* 次數警告樣式 */
+        .usage-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #fed7d7, #feb2b2);
+            color: #742a2a;
+            padding: 25px 30px;
+            border-radius: 15px;
+            border: 3px solid #e53e3e;
+            box-shadow: 0 10px 30px rgba(229, 62, 62, 0.3);
+            z-index: 3000;
+            text-align: center;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .usage-warning h3 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            color: #742a2a;
+        }
+
+        .usage-warning p {
+            margin: 0 0 20px 0;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+
+        .usage-warning button {
+            background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
+            color: #4a5568;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .usage-warning button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -232,6 +280,13 @@
         <div class="loading-text">正在生成文件，請稍候...</div>
     </div>
     
+    <!-- 次數用完警告 -->
+    <div class="usage-warning" id="usageWarning" style="display: none;">
+        <h3>⚠️ 今日問題次數已用完</h3>
+        <p>您今日的問題次數已經用完。<br>請明天再來，或聯絡管理員增加額外次數。</p>
+        <button onclick="closeUsageWarning()">我知道了</button>
+    </div>
+    
     <div id="pdf-content"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -239,6 +294,9 @@
     <script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.min.js"></script>
 
     <script>
+        // 全局變數追蹤是否已攔截
+        let messageIntercepted = false;
+        
         function getUrlParameter(name) {
             name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
             var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -306,6 +364,165 @@
                 }
             }
         });
+        
+        // 次數檢查函數
+        async function checkUsageLimit() {
+            try {
+                // 從父窗口獲取 consumeQuestion 函數
+                if (window.parent && typeof window.parent.consumeQuestion === 'function') {
+                    const canProceed = await window.parent.consumeQuestion();
+                    if (!canProceed) {
+                        showUsageWarning();
+                        return false;
+                    }
+                    return true;
+                } else {
+                    console.warn('無法取得次數檢查函數，允許繼續操作');
+                    return true;
+                }
+            } catch (error) {
+                console.error('檢查使用次數時發生錯誤:', error);
+                // 如果檢查失敗，允許繼續操作以避免阻斷服務
+                return true;
+            }
+        }
+
+        // 顯示次數用完警告
+        function showUsageWarning() {
+            document.getElementById('usageWarning').style.display = 'block';
+        }
+
+        // 關閉次數警告
+        window.closeUsageWarning = function() {
+            document.getElementById('usageWarning').style.display = 'none';
+        };
+
+        // 攔截輸入送出事件的函數
+        function interceptChatInput() {
+            const chatbotElement = document.querySelector('.custom-chatbot');
+            if (!chatbotElement || !chatbotElement.shadowRoot) {
+                console.log('聊天機器人尚未載入，稍後重試...');
+                setTimeout(interceptChatInput, 1000);
+                return;
+            }
+
+            // 尋找輸入區域和發送按鈕
+            const shadowRoot = chatbotElement.shadowRoot;
+            const inputElement = shadowRoot.querySelector('input[type="text"], textarea');
+            const sendButton = shadowRoot.querySelector('button[type="submit"], button[class*="send"]');
+            
+            if (inputElement) {
+                console.log('找到輸入框，設置攔截器');
+                
+                // 攔截 Enter 鍵
+                inputElement.addEventListener('keydown', async function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        const messageText = inputElement.value.trim();
+                        if (messageText) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const canProceed = await checkUsageLimit();
+                            if (canProceed) {
+                                // 允許發送，手動觸發原始事件
+                                const originalEvent = new KeyboardEvent('keydown', {
+                                    key: 'Enter',
+                                    bubbles: true,
+                                    cancelable: true
+                                });
+                                
+                                // 暫時移除我們的監聽器
+                                inputElement.removeEventListener('keydown', arguments.callee);
+                                inputElement.dispatchEvent(originalEvent);
+                                
+                                // 重新添加監聽器
+                                setTimeout(() => {
+                                    inputElement.addEventListener('keydown', arguments.callee);
+                                }, 100);
+                            }
+                        }
+                    }
+                }, true); // 使用捕獲階段
+            }
+
+            if (sendButton) {
+                console.log('找到發送按鈕，設置攔截器');
+                
+                sendButton.addEventListener('click', async function(e) {
+                    const inputEl = shadowRoot.querySelector('input[type="text"], textarea');
+                    const messageText = inputEl ? inputEl.value.trim() : '';
+                    
+                    if (messageText) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const canProceed = await checkUsageLimit();
+                        if (canProceed) {
+                            // 允許發送，手動觸發原始事件
+                            const originalEvent = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            
+                            // 暫時移除我們的監聽器
+                            sendButton.removeEventListener('click', arguments.callee);
+                            sendButton.dispatchEvent(originalEvent);
+                            
+                            // 重新添加監聽器
+                            setTimeout(() => {
+                                sendButton.addEventListener('click', arguments.callee);
+                            }, 100);
+                        }
+                    }
+                }, true); // 使用捕獲階段
+            }
+
+            // 如果沒找到元素，繼續重試
+            if (!inputElement && !sendButton) {
+                console.log('未找到輸入元素，繼續重試...');
+                setTimeout(interceptChatInput, 1000);
+            }
+        }
+
+        // 監聽 DOM 變化以處理動態載入的元素
+        function observeChatbotChanges() {
+            const chatbotElement = document.querySelector('.custom-chatbot');
+            if (!chatbotElement) {
+                setTimeout(observeChatbotChanges, 1000);
+                return;
+            }
+
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        // 當有新元素添加時，重新設置攔截器
+                        setTimeout(interceptChatInput, 500);
+                    }
+                });
+            });
+
+            // 開始觀察
+            observer.observe(chatbotElement, {
+                childList: true,
+                subtree: true
+            });
+
+            // 也觀察 shadow DOM 的變化
+            if (chatbotElement.shadowRoot) {
+                const shadowObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            setTimeout(interceptChatInput, 500);
+                        }
+                    });
+                });
+
+                shadowObserver.observe(chatbotElement.shadowRoot, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+        }
         
         // 取得 LLM 名稱（跨 frame）
         function getCurrentLLMName() {
@@ -536,15 +753,6 @@
                 const lines = textContent.split('\n');
                 const { Document, Packer, Paragraph, TextRun } = window.docx;
                 const children = [];
-                
-                children.push(new Paragraph({
-                    children: [new TextRun({
-                        text: "建築技術規則 @ 台中建管 AI 聊天記錄",
-                        bold: true,
-                        size: 36,
-                        font: "Microsoft JhengHei"
-                    })]
-                }));
                 
                 children.push(new Paragraph({
                     children: [new TextRun({
@@ -891,7 +1099,7 @@
                                         'color: #111111 !important; ' +
                                         'border: 1px solid ' + (isBot ? '#808080' : '#808080') + '; ' +
                                         'border-radius: 4px; ' +
-                                        'font-size: 24px; ' +  // 🎯 修改字體大小：12px → 14px
+                                        'font-size: 24px; ' +
                                         'font-weight: bold; ' +
                                         'font-family: Microsoft JhengHei, Arial, sans-serif; ' +
                                         'vertical-align: middle; ' +
@@ -908,8 +1116,8 @@
                                         'background-color: #f0f0f0; ' +
                                         'border: 1px solid #ddd; ' +
                                         'border-radius: 3px; ' +
-                                        'font-size: 12px; ' +  // 🎯 一般圖片標籤字體大小
-                                        'color: #666; ' +      // 🎯 一般圖片標籤顏色
+                                        'font-size: 12px; ' +
+                                        'color: #666; ' +
                                         'font-family: Microsoft JhengHei, Arial, sans-serif;';
                                     
                                     replacement.textContent = '[圖片]';
@@ -1129,6 +1337,12 @@
                 exportLongScreenshot();
                 exportDialog.style.display = 'none';
             });
+
+            // 啟動攔截器
+            setTimeout(() => {
+                interceptChatInput();
+                observeChatbotChanges();
+            }, 2000);
         });
     </script>
 
@@ -1174,4 +1388,13 @@
         })
     </script>
 </body>
-</html>
+</html>(new Paragraph({
+                    children: [new TextRun({
+                        text: "建築技術規則 @ 台中建管 AI 聊天記錄",
+                        bold: true,
+                        size: 36,
+                        font: "Microsoft JhengHei"
+                    })]
+                }));
+                
+                children.push
