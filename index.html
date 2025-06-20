@@ -1749,6 +1749,190 @@
     });
 
     console.log('🔧 備用監控機制已設置完成');
+
+    // ====== MutationObserver 聊天監控系統 ======
+    let chatMutationObserver = null;
+    let lastUserMessageCount = 0;
+    let isMonitoringActive = false;
+
+    // 啟動聊天監控
+    function startChatMonitoring() {
+        if (isMonitoringActive) return;
+        isMonitoringActive = true;
+        
+        console.log('🔍 啟動 MutationObserver 聊天監控');
+        
+        function setupObserver() {
+            try {
+                const chatFrame = document.getElementById('chatFrame');
+                if (!chatFrame || !chatFrame.contentDocument) {
+                    setTimeout(setupObserver, 2000);
+                    return;
+                }
+                
+                const chatDoc = chatFrame.contentDocument;
+                const chatbot = chatDoc.querySelector('.custom-chatbot');
+                
+                if (!chatbot || !chatbot.shadowRoot) {
+                    setTimeout(setupObserver, 2000);
+                    return;
+                }
+                
+                console.log('✅ 找到 chatbot shadow DOM，開始監控');
+                
+                // 監控 shadow DOM 內容變化
+                chatMutationObserver = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            // 檢查是否有新的用戶訊息
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.nodeType === Node.ELEMENT_NODE) {
+                                    // 檢查是否是用戶訊息（多種可能的選擇器）
+                                    const isUserMessage = 
+                                        node.matches && (
+                                            node.matches('[data-role="user"]') ||
+                                            node.matches('.user-message') ||
+                                            node.matches('.message-user') ||
+                                            node.matches('[class*="user"]')
+                                        ) ||
+                                        node.querySelector && (
+                                            node.querySelector('[data-role="user"]') ||
+                                            node.querySelector('.user-message') ||
+                                            node.querySelector('.message-user') ||
+                                            node.querySelector('[class*="user"]')
+                                        );
+                                    
+                                    if (isUserMessage) {
+                                        const messageText = node.textContent || node.innerText || '';
+                                        if (messageText.trim()) {
+                                            console.log('🎯 MutationObserver 檢測到新用戶訊息:', messageText.substring(0, 50) + '...');
+                                            
+                                            // 直接記錄問題
+                                            if (typeof window.consumeQuestionCredit === 'function') {
+                                                window.consumeQuestionCredit(messageText.trim());
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                // 開始監控
+                chatMutationObserver.observe(chatbot.shadowRoot, {
+                    childList: true,
+                    subtree: true,
+                    attributes: false
+                });
+                
+                console.log('🎉 MutationObserver 監控已啟動');
+                
+            } catch (error) {
+                console.log('❌ 設置 MutationObserver 失敗:', error);
+                setTimeout(setupObserver, 3000);
+            }
+        }
+        
+        // 延遲啟動
+        setTimeout(setupObserver, 3000);
+    }
+
+    // 停止監控
+    function stopChatMonitoring() {
+        if (chatMutationObserver) {
+            chatMutationObserver.disconnect();
+            chatMutationObserver = null;
+        }
+        isMonitoringActive = false;
+        console.log('🛑 聊天監控已停止');
+    }
+
+    // 當用戶登入時啟動監控
+    const originalOnAuthStateChanged = onAuthStateChanged;
+    if (originalOnAuthStateChanged) {
+        onAuthStateChanged(auth, async (user) => {
+            console.log('=== 認證狀態變化（MutationObserver 版） ===');
+            console.log('用戶:', user ? user.email : '未登入');
+            
+            if (user) {
+                window.currentUser = user;
+
+                // 載入用戶資料
+                await loadUserData(user.uid);
+                await checkDailyReset(user.uid);
+
+                // 啟動 MutationObserver 監控
+                startChatMonitoring();
+
+                // 通知 chatFrame
+                setTimeout(() => {
+                    try {
+                        const chatFrame = document.getElementById("chatFrame");
+                        if (chatFrame && chatFrame.contentWindow) {
+                            chatFrame.contentWindow.postMessage({ 
+                                type: "clearUsageWarning" 
+                            }, "*");
+                            
+                            setTimeout(() => {
+                                chatFrame.contentWindow.postMessage({ 
+                                    type: "checkUsageWarning" 
+                                }, "*");
+                            }, 1000);
+                        }
+                    } catch(e) {
+                        console.log('無法與 chatFrame 通訊:', e);
+                    }
+                }, 2000);
+
+                // 顯示主要內容
+                showMainContent();
+                
+                console.log('✅ 用戶載入完成，MutationObserver 監控已啟動');
+            } else {
+                console.log('用戶登出，停止監控');
+                stopChatMonitoring();
+                window.currentUser = null;
+                window.userData = null;
+                showAuthOverlay();
+            }
+        });
+    }
+
+    // 當 iframe 重新載入時重新啟動監控
+    window.addEventListener('message', function(event) {
+        // 處理原有訊息
+        if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
+            console.log('🎯 收到 postMessage 用戶問題:', event.data.question.substring(0, 30) + '...');
+            window.consumeQuestionCredit(event.data.question);
+        }
+        
+        // 當切換 LLM 時重新啟動監控
+        if (event.data && event.data.type === 'chatflowChange') {
+            console.log('🔄 LLM 切換，重新啟動監控');
+            stopChatMonitoring();
+            setTimeout(() => {
+                if (window.currentUser) {
+                    startChatMonitoring();
+                }
+            }, 3000);
+        }
+    });
+
+    // 監聽 iframe 載入完成
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatFrame = document.getElementById('chatFrame');
+        if (chatFrame) {
+            chatFrame.addEventListener('load', function() {
+                console.log('📱 iframe 載入完成，重新啟動監控');
+                if (window.currentUser && !isMonitoringActive) {
+                    setTimeout(startChatMonitoring, 2000);
+                }
+            });
+        }
+    });
+
+    console.log('🔧 MutationObserver 監控系統已設置完成');
     </script>
 </body>
 </html>
