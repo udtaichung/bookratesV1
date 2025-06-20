@@ -817,6 +817,14 @@
                     }
                 } catch(e) {}
 
+                // 新增：登入時要求 chatFrame 檢查是否需要顯示次數警告
+                try {
+                    const chatFrame = document.getElementById("chatFrame");
+                    if (chatFrame && chatFrame.contentWindow) {
+                        chatFrame.contentWindow.postMessage({ type: "checkUsageWarning" }, "*");
+                    }
+                } catch(e) {}
+
                 window.currentUser = user;
                 console.log('設定當前用戶:', user.email);
                 
