@@ -364,6 +364,17 @@
             // 新增：接收 clearUsageWarning 訊息
             if (event.data && event.data.type === "clearUsageWarning") {
                 document.getElementById('usageWarning').style.display = 'none';
+            } else if (event.data && event.data.type === "checkUsageWarning") {
+                // 呼叫目前登入者的checkQuestionLimit
+                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                    window.parent.checkQuestionLimit().then(hasCredit => {
+                        if (!hasCredit) {
+                            showUsageWarning();
+                        } else {
+                            document.getElementById('usageWarning').style.display = 'none';
+                        }
+                    });
+                }
             }
         });
         
