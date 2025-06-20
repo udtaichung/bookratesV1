@@ -157,74 +157,78 @@
         /* ===== 簡化的使用次數顯示樣式 ===== */
         .usage-info {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
-            padding: 12px 20px;
-            border-radius: 25px;
-            border: 2px solid #00ff88;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            top: 140px; /* 原本20px + 120px = 140px */
+            left: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(248, 250, 252, 0.6)); /* 60%透明 */
+            padding: 6px 10px; /* 原本12px 20px 縮小50% */
+            border-radius: 12.5px; /* 原本25px 縮小50% */
+            border: 1px solid rgba(0, 255, 136, 0.6); /* 邊框也60%透明，厚度縮小50% */
+            box-shadow: 0 2px 7.5px rgba(0, 0, 0, 0.12); /* 縮小50% */
             z-index: 1000;
             font-weight: bold;
-            color: #1a365d;
+            color: rgba(26, 54, 93, 0.9); /* 文字稍微透明一點保持可讀性 */
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
             display: flex;
             align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(10px);
+            gap: 7.5px; /* 原本15px 縮小50% */
+            backdrop-filter: blur(5px); /* 減少模糊效果 */
+            transform: scale(0.5); /* 整體縮小50% */
+            transform-origin: top left; /* 確保從左上角縮放 */
         }
 
         .usage-info .level-display {
-            color: #00ff88;
-            font-size: 16px;
+            color: rgba(0, 255, 136, 0.9);
+            font-size: 8px; /* 原本16px 縮小50% */
         }
 
         .usage-info .count-display {
-            color: #2196f3;
-            font-size: 18px;
+            color: rgba(33, 150, 243, 0.9);
+            font-size: 9px; /* 原本18px 縮小50% */
             font-weight: bold;
         }
 
         .usage-info .logout-btn {
-            background: linear-gradient(145deg, #fed7d7, #feb2b2);
-            color: #742a2a;
+            background: linear-gradient(145deg, rgba(254, 215, 215, 0.6), rgba(254, 178, 178, 0.6));
+            color: rgba(116, 42, 42, 0.9);
             border: none;
-            border-radius: 15px;
-            padding: 6px 12px;
-            font-size: 14px;
+            border-radius: 7.5px; /* 原本15px 縮小50% */
+            padding: 3px 6px; /* 原本6px 12px 縮小50% */
+            font-size: 7px; /* 原本14px 縮小50% */
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .usage-info .logout-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            background: linear-gradient(145deg, #feb2b2, #fc8181);
+            transform: translateY(-1px); /* 原本-2px 縮小50% */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12); /* 縮小50% */
+            background: linear-gradient(145deg, rgba(254, 178, 178, 0.6), rgba(252, 129, 129, 0.6));
         }
 
-        /* 手機版調整 */
+        /* 手機版調整 - 同樣縮小50%並下移120px */
         @media (max-width: 768px) {
             .usage-info {
-                top: 10px;
+                top: 130px; /* 原本10px + 120px = 130px */
                 left: 10px;
-                right: 10px;
-                padding: 10px 15px;
-                font-size: 14px;
-                gap: 10px;
+                right: auto; /* 不要延伸到右邊 */
+                padding: 5px 7.5px; /* 原本10px 15px 縮小50% */
+                font-size: 7px; /* 原本14px 縮小50% */
+                gap: 5px; /* 原本10px 縮小50% */
+                transform: scale(0.5); /* 手機版也縮小50% */
+                transform-origin: top left;
             }
             
             .usage-info .level-display {
-                font-size: 14px;
+                font-size: 7px; /* 原本14px 縮小50% */
             }
             
             .usage-info .count-display {
-                font-size: 16px;
+                font-size: 8px; /* 原本16px 縮小50% */
             }
             
             .usage-info .logout-btn {
-                padding: 5px 10px;
-                font-size: 12px;
+                padding: 2.5px 5px; /* 原本5px 10px 縮小50% */
+                font-size: 6px; /* 原本12px 縮小50% */
             }
         }
 
@@ -443,25 +447,27 @@
             }
             
             .usage-info {
-                top: 10px;
+                top: 130px; /* 原本10px + 120px = 130px */
                 left: 10px;
-                right: 10px;
-                padding: 10px 15px;
-                font-size: 14px;
-                gap: 10px;
+                right: auto; /* 不要延伸到右邊 */
+                padding: 5px 7.5px; /* 原本10px 15px 縮小50% */
+                font-size: 7px; /* 原本14px 縮小50% */
+                gap: 5px; /* 原本10px 縮小50% */
+                transform: scale(0.5); /* 手機版也縮小50% */
+                transform-origin: top left;
             }
             
             .usage-info .level-display {
-                font-size: 14px;
+                font-size: 7px; /* 原本14px 縮小50% */
             }
             
             .usage-info .count-display {
-                font-size: 16px;
+                font-size: 8px; /* 原本16px 縮小50% */
             }
             
             .usage-info .logout-btn {
-                padding: 5px 10px;
-                font-size: 12px;
+                padding: 2.5px 5px; /* 原本5px 10px 縮小50% */
+                font-size: 6px; /* 原本12px 縮小50% */
             }
             
             .tutorial-tooltip {
