@@ -554,6 +554,13 @@
         
         // DOMContentLoaded 事件監聽器
         document.addEventListener('DOMContentLoaded', function() {
+            // 進入 chat.html 後立即檢查次數
+            if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
+                window.parent.checkQuestionLimit().then(hasCredit => {
+                    if (!hasCredit) showUsageWarning();
+                });
+            }
+            
             const saveButton = document.getElementById('saveButton');
             const exportDialog = document.getElementById('exportDialog');
             const saveTxtButton = document.getElementById('saveTxtButton');
