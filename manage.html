@@ -370,25 +370,6 @@
 
         <div id="panelMessage" class="message hidden"></div>
 
-        <!-- 等級配置管理面板 -->
-        <div class="action-section">
-            <h3>⚙️ 等級配置管理</h3>
-            <table class="form-table" style="width:100%;margin-bottom:15px;">
-                <thead>
-                    <tr>
-                        <th>等級</th>
-                        <th>每日補充</th>
-                        <th>最高上限</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="levelConfigTable">
-                    <!-- 動態生成 -->
-                </tbody>
-            </table>
-            <button class="btn btn-primary" onclick="saveLevelConfigs()">儲存配置</button>
-        </div>
-
         <!-- 統計資訊 -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -427,6 +408,11 @@
                             <option value="3">等級 3</option>
                             <option value="4">等級 4</option>
                             <option value="5">等級 5</option>
+                            <option value="6">等級 6</option>
+                            <option value="7">等級 7</option>
+                            <option value="8">等級 8</option>
+                            <option value="9">等級 9</option>
+                            <option value="10">等級 10</option>
                         </select>
                         <input type="number" id="batchLevelCredits" placeholder="增加額外點數" min="0">
                     </div>
@@ -510,11 +496,16 @@
                         <option value="3">等級 3</option>
                         <option value="4">等級 4</option>
                         <option value="5">等級 5</option>
+                        <option value="6">等級 6</option>
+                        <option value="7">等級 7</option>
+                        <option value="8">等級 8</option>
+                        <option value="9">等級 9</option>
+                        <option value="10">等級 10</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">每日問題次數</label>
-                    <input type="number" id="editUserDailyQuestions" class="form-input" readonly>
+                    <input type="number" id="editUserDailyQuestions" class="form-input" min="1" max="100">
                 </div>
                 <div class="form-group">
                     <label class="form-label">剩餘次數</label>
@@ -576,34 +567,27 @@
         const ADMIN_EMAIL = 'ud.taichung.chatgpt@gmail.com';
 
         // 管理員登入表單
-        // 只保留一份 submit 事件註冊，優化 email 驗證與訊息顯示
-        const adminLoginForm = document.getElementById('adminLoginForm');
-        if (adminLoginForm) {
-            adminLoginForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const email = document.getElementById('adminEmail').value.trim().toLowerCase();
-                const password = document.getElementById('adminPassword').value;
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
 
-                if (email !== ADMIN_EMAIL.trim().toLowerCase()) {
-                    showAuthMessage('只有系統管理員可以登入此後台', 'error');
-                    // 不清空欄位
-                    return;
-                }
+            if (email !== ADMIN_EMAIL) {
+                showAuthMessage('只有系統管理員可以登入此後台', 'error');
+                return;
+            }
 
-                setAuthLoading(true);
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    console.log('管理員登入成功:', userCredential.user);
-                    // 登入成功後，Firebase onAuthStateChanged 會自動跳轉
-                } catch (error) {
-                    console.error('登入錯誤:', error);
-                    showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
-                    // 不清空欄位
-                } finally {
-                    setAuthLoading(false);
-                }
-            });
-        }
+            setAuthLoading(true);
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log('管理員登入成功:', userCredential.user);
+            } catch (error) {
+                console.error('登入錯誤:', error);
+                showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
+            } finally {
+                setAuthLoading(false);
+            }
+        });
 
         // 監聽認證狀態
         onAuthStateChanged(auth, async (user) => {
@@ -705,76 +689,6 @@
             document.getElementById('usersTable').classList.remove('hidden');
         }
 
-        // ====== 等級配置管理邏輯 ======
-        // 只保留一份 levelConfigs 宣告
-        let levelConfigs = JSON.parse(localStorage.getItem('levelConfigs')) || [
-            { level: 1, daily: 20, max: 50 },
-            { level: 2, daily: 10, max: 20 },
-            { level: 3, daily: 5,  max: 10 },
-            { level: 4, daily: 3,  max: 5 },
-            { level: 5, daily: 0,  max: 5 }
-        ];
-
-        function initLevelConfigTable() {
-            const tbody = document.getElementById('levelConfigTable');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            levelConfigs.forEach((config, idx) => {
-                const row = tbody.insertRow();
-                // 等級
-                row.insertCell().textContent = `Lv${config.level}`;
-                // 每日補充
-                const dailyCell = row.insertCell();
-                const dailyInput = document.createElement('input');
-                dailyInput.type = 'number';
-                dailyInput.value = config.daily;
-                dailyInput.min = 0;
-                dailyInput.style.width = '70px';
-                dailyInput.onchange = function() {
-                    config.daily = parseInt(dailyInput.value) || 0;
-                };
-                dailyCell.appendChild(dailyInput);
-                // 最高上限
-                const maxCell = row.insertCell();
-                const maxInput = document.createElement('input');
-                maxInput.type = 'number';
-                maxInput.value = config.max;
-                maxInput.min = 0;
-                maxInput.style.width = '70px';
-                maxInput.onchange = function() {
-                    config.max = parseInt(maxInput.value) || 0;
-                };
-                maxCell.appendChild(maxInput);
-                // 操作
-                row.insertCell().innerHTML = '';
-            });
-        }
-
-        window.saveLevelConfigs = function() {
-            localStorage.setItem('levelConfigs', JSON.stringify(levelConfigs));
-            showPanelMessage('等級配置已保存 (僅本機測試用)', 'success');
-            // 若要立即影響用戶邏輯，可呼叫刷新
-            // updateStatistics(); renderUsersTable();
-        };
-
-        // 取得指定等級的每日補充
-        function getDailyQuestionsByLevel(level) {
-            const found = levelConfigs.find(cfg => cfg.level == level);
-            return found ? found.daily : 0;
-        }
-        // 取得指定等級的最高上限
-        function getMaxQuestionsByLevel(level) {
-            const found = levelConfigs.find(cfg => cfg.level == level);
-            return found ? found.max : 0;
-        }
-
-        // 頁面初始化時呼叫
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initLevelConfigTable);
-        } else {
-            initLevelConfigTable();
-        }
-
         // 編輯用戶
         window.editUser = function(userId) {
             console.log('📝 編輯用戶:', userId);
@@ -786,10 +700,8 @@
             }
             editingUserId = userId;
             document.getElementById('editUserEmail').value = user.email || '';
-            document.getElementById('editUserLevel').value = user.level || 3;
-            // 根據 level 更新 dailyQuestions 的顯示
-            const dailyQuestions = getDailyQuestionsByLevel(user.level || 3);
-            document.getElementById('editUserDailyQuestions').value = dailyQuestions;
+            document.getElementById('editUserLevel').value = user.level || 5;
+            document.getElementById('editUserDailyQuestions').value = user.dailyQuestions || 10;
             document.getElementById('editUserQuestionsLeft').value = user.questionsLeft || 0;
             document.getElementById('editUserExtraCredits').value = user.extraCredits || 0;
             const modal = document.getElementById('editUserModal');
@@ -810,17 +722,15 @@
                 return;
             }
             const level = parseInt(document.getElementById('editUserLevel').value);
-            // 只允許 1-5 級
-            if (isNaN(level) || level < 1 || level > 5) {
-                showPanelMessage('等級必須在 1-5 之間', 'error');
-                return;
-            }
-            // 根據等級取得 dailyQuestions
-            const dailyQuestions = getDailyQuestionsByLevel(level);
+            const dailyQuestions = parseInt(document.getElementById('editUserDailyQuestions').value);
             const questionsLeft = parseInt(document.getElementById('editUserQuestionsLeft').value);
             const extraCredits = parseInt(document.getElementById('editUserExtraCredits').value);
-            if (isNaN(dailyQuestions) || dailyQuestions < 0 || dailyQuestions > 100) {
-                showPanelMessage('每日問題次數必須在 0-100 之間', 'error');
+            if (isNaN(level) || level < 1 || level > 10) {
+                showPanelMessage('等級必須在 1-10 之間', 'error');
+                return;
+            }
+            if (isNaN(dailyQuestions) || dailyQuestions < 1 || dailyQuestions > 100) {
+                showPanelMessage('每日問題次數必須在 1-100 之間', 'error');
                 return;
             }
             if (isNaN(questionsLeft) || questionsLeft < 0 || questionsLeft > 100) {
@@ -835,7 +745,7 @@
                 console.log('📤 更新用戶資料到資料庫');
                 await updateDoc(doc(db, 'users', editingUserId), {
                     level: level,
-                    dailyQuestions: dailyQuestions, // 根據等級設定
+                    dailyQuestions: dailyQuestions,
                     questionsLeft: questionsLeft,
                     extraCredits: extraCredits
                 });
@@ -892,9 +802,8 @@
             const targetLevel = document.getElementById('batchLevelSelect').value;
             const creditsToAdd = parseInt(document.getElementById('batchLevelCredits').value) || 0;
 
-            // 調整為只處理 1～5 級
-            if (!targetLevel || parseInt(targetLevel) < 1 || parseInt(targetLevel) > 5) {
-                showPanelMessage('請選擇有效的等級 (1～5)', 'warning');
+            if (!targetLevel) {
+                showPanelMessage('請選擇要調整的等級', 'warning');
                 return;
             }
 
@@ -1097,13 +1006,16 @@
         // 查看使用記錄
         window.viewUsageLogs = function(userId) {
             console.log('📊 查看使用記錄:', userId);
+            
             const user = allUsers.find(u => u.id === userId);
             if (!user) {
                 console.error('找不到用戶:', userId);
                 showPanelMessage('找不到指定用戶', 'error');
                 return;
             }
+
             const logs = user.usageLogs || [];
+            
             // 創建記錄查看彈窗
             const modal = document.createElement('div');
             modal.id = 'usageLogsModal';
@@ -1120,6 +1032,7 @@
                 align-items: center;
                 font-family: 'Microsoft JhengHei', Arial, sans-serif;
             `;
+            
             const content = document.createElement('div');
             content.style.cssText = `
                 background: white; 
@@ -1131,6 +1044,7 @@
                 overflow-y: auto;
                 box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
             `;
+            
             let logsHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="margin: 0; color: #1a365d; font-size: 24px;">
@@ -1147,41 +1061,147 @@
                         font-size: 18px;
                         display: flex;
                         align-items: center;
-                        justify-content: center;">×</button>
+                        justify-content: center;
+                    ">×</button>
                 </div>
-                <div style="background: linear-gradient(145deg, #f0f8ff, #e6f3ff); padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 2px solid #00ff88;">
+                
+                <div style="
+                    background: linear-gradient(145deg, #f0f8ff, #e6f3ff); 
+                    padding: 20px; 
+                    border-radius: 10px; 
+                    margin-bottom: 25px;
+                    border: 2px solid #00ff88;
+                ">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
-                        <div><div style="font-size: 28px; font-weight: bold; color: #00ff88;">${user.totalQuestions || 0}</div><div style="color: #666; font-size: 14px;">累計發問</div></div>
-                        <div><div style="font-size: 28px; font-weight: bold; color: #2196f3;">${logs.length}</div><div style="color: #666; font-size: 14px;">記錄筆數</div></div>
-                        <div><div style="font-size: 28px; font-weight: bold; color: #ff9800;">${user.questionsLeft || 0}</div><div style="color: #666; font-size: 14px;">剩餘次數</div></div>
-                        <div><div style="font-size: 28px; font-weight: bold; color: #9c27b0;">${user.extraCredits || 0}</div><div style="color: #666; font-size: 14px;">額外點數</div></div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #00ff88;">${user.totalQuestions || 0}</div>
+                            <div style="color: #666; font-size: 14px;">累計發問</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #2196f3;">${logs.length}</div>
+                            <div style="color: #666; font-size: 14px;">記錄筆數</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #ff9800;">${user.questionsLeft || 0}</div>
+                            <div style="color: #666; font-size: 14px;">剩餘次數</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 28px; font-weight: bold; color: #9c27b0;">${user.extraCredits || 0}</div>
+                            <div style="color: #666; font-size: 14px;">額外點數</div>
+                        </div>
                     </div>
                 </div>
             `;
+            
             if (logs.length === 0) {
-                logsHtml += `<div style="text-align: center; padding: 40px; color: #999; background: #f9f9f9; border-radius: 10px; border: 2px dashed #ddd;"><div style="font-size: 48px; margin-bottom: 20px;">📝</div><div style="font-size: 18px; margin-bottom: 10px;">尚無使用記錄</div><div style="font-size: 14px;">此用戶還沒有發問過任何問題</div></div>`;
-            } else {
-                logsHtml += `<div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 10px; max-height: 400px; overflow-y: auto;">
-                    <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-                        ${logs.map(log => {
-                            // 直接顯示，分行
-                            const [time, ...rest] = log.split('\n');
-                            const question = rest.join('\n');
-                            return `<div style="background: #f8f9fa; padding: 10px 14px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; color: #222; border-left: 4px solid #00ff88; margin-bottom: 2px;">
-                                <div style="font-weight:bold; color:#1a365d;">${time}</div>
-                                <div style="white-space: pre-line;">${question}</div>
-                            </div>`;
-                        }).join('')}
+                logsHtml += `
+                    <div style="
+                        text-align: center; 
+                        padding: 40px; 
+                        color: #999; 
+                        background: #f9f9f9; 
+                        border-radius: 10px;
+                        border: 2px dashed #ddd;
+                    ">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                        <div style="font-size: 18px; margin-bottom: 10px;">尚無使用記錄</div>
+                        <div style="font-size: 14px;">此用戶還沒有發問過任何問題</div>
                     </div>
-                </div>`;
+                `;
+            } else {
+                logsHtml += `
+                    <div style="
+                        background: #f9f9f9; 
+                        padding: 15px; 
+                        border-radius: 8px; 
+                        margin-bottom: 20px;
+                        border-left: 4px solid #00ff88;
+                    ">
+                        <h4 style="margin: 0 0 10px 0; color: #333; display: flex; align-items: center;">
+                            <span style="margin-right: 10px;">ℹ️</span>
+                            記錄格式說明
+                        </h4>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 14px; color: #666;">
+                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">MMDDHHMI-問題前6字</code></div>
+                            <div>月日時分-問題前6個字</div>
+                            <div><code style="background: #e0e0e0; padding: 2px 6px; border-radius: 3px;">06201120-防火門開啟規</code></div>
+                            <div>6月20日11:20 問「防火門開啟規定」</div>
+                        </div>
+                    </div>
+                    
+                    <div style="
+                        background: #fff; 
+                        border: 2px solid #e0e0e0; 
+                        border-radius: 10px; 
+                        max-height: 400px; 
+                        overflow-y: auto;
+                    ">
+                        <div style="
+                            padding: 20px; 
+                            display: grid; 
+                            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+                            gap: 12px;
+                        ">
+                `;
+                
+                // 顯示記錄，最新的在前面
+                logs.forEach((log, index) => {
+                    // 解析記錄以決定顏色
+                    const isRecent = index < 5; // 最近5筆用不同顏色
+                    const bgColor = isRecent ? '#e8f5e8' : '#f8f9fa';
+                    const borderColor = isRecent ? '#4caf50' : '#e0e0e0';
+                    const textColor = isRecent ? '#2e7d32' : '#333';
+                    
+                    logsHtml += `
+                        <div style="
+                            background: ${bgColor}; 
+                            padding: 10px; 
+                            border-radius: 6px; 
+                            font-family: 'Courier New', monospace; 
+                            font-size: 13px; 
+                            text-align: center;
+                            border: 2px solid ${borderColor};
+                            color: ${textColor};
+                            font-weight: ${isRecent ? 'bold' : 'normal'};
+                            position: relative;
+                            transition: transform 0.2s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            ${log}
+                            ${isRecent ? '<div style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center;">新</div>' : ''}
+                        </div>
+                    `;
+                });
+                
+                logsHtml += '</div></div>';
             }
-            logsHtml += `<div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-                <button class="btn btn-secondary" onclick="closeUsageLogsModal()" style="margin-right: 10px;">關閉</button>
-                <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">📄 匯出記錄</button>
-            </div>`;
+            
+            logsHtml += `
+                <div style="
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    margin-top: 25px; 
+                    padding-top: 20px; 
+                    border-top: 2px solid #e0e0e0;
+                ">
+                    <div style="font-size: 12px; color: #666;">
+                        💡 提示：最近5筆記錄會以綠色高亮顯示
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="closeUsageLogsModal()" style="margin-right: 10px;">
+                            關閉
+                        </button>
+                        <button class="btn btn-primary" onclick="exportUserLogs('${userId}')">
+                            📄 匯出記錄
+                        </button>
+                    </div>
+                </div>
+            `;
+            
             content.innerHTML = logsHtml;
             modal.appendChild(content);
             document.body.appendChild(modal);
+            
             console.log('✅ 使用記錄彈窗已顯示');
         };
 
