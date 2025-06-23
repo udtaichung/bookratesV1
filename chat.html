@@ -361,21 +361,6 @@
                     }
                 }
             }
-            // 新增：接收 clearUsageWarning 訊息
-            if (event.data && event.data.type === "clearUsageWarning") {
-                document.getElementById('usageWarning').style.display = 'none';
-            } else if (event.data && event.data.type === "checkUsageWarning") {
-                // 呼叫目前登入者的checkQuestionLimit
-                if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                    window.parent.checkQuestionLimit().then(hasCredit => {
-                        if (!hasCredit) {
-                            showUsageWarning();
-                        } else {
-                            document.getElementById('usageWarning').style.display = 'none';
-                        }
-                    });
-                }
-            }
         });
         
         // 簡單的訊息監聽（不攔截發送）- 發送後檢查並記錄
@@ -569,13 +554,6 @@
         
         // DOMContentLoaded 事件監聽器
         document.addEventListener('DOMContentLoaded', function() {
-            // 進入 chat.html 後立即檢查次數
-            if (window.parent && typeof window.parent.checkQuestionLimit === 'function') {
-                window.parent.checkQuestionLimit().then(hasCredit => {
-                    if (!hasCredit) showUsageWarning();
-                });
-            }
-            
             const saveButton = document.getElementById('saveButton');
             const exportDialog = document.getElementById('exportDialog');
             const saveTxtButton = document.getElementById('saveTxtButton');
