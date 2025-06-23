@@ -264,11 +264,20 @@
                 transform: none !important;
             }
         }
+
+        /* 登出鈕單獨顯示時，authSection極簡化 */
+        .auth-section.logout-only {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            min-width: 0 !important;
+            border-radius: 0 !important;
+        }
     </style>
 </head>
 <body>
     <!-- Firebase 登入系統 UI (只支援信箱/密碼) -->
-    <div id="authSection" style="position:fixed;top:10px;left:10px;z-index:10010;background:rgba(255,255,255,0.95);padding:12px 18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);min-width:270px;">
+    <div id="authSection" class="auth-section" style="position:fixed;top:10px;left:10px;z-index:10010;background:rgba(255,255,255,0.95);padding:12px 18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);min-width:270px;">
         <div id="authForms">
             <!-- 登入表單 -->
             <form id="loginForm" style="display:none;margin-bottom:10px;">
@@ -791,6 +800,7 @@
 
       // UI 切換
       function showForm(form) {
+        const authSection = document.getElementById('authSection');
         // 只控制表單與驗證提示，不隱藏 authSection
         loginForm.style.display = form === 'login' ? 'block' : 'none';
         registerForm.style.display = form === 'register' ? 'block' : 'none';
@@ -798,6 +808,12 @@
         const verifyNotice = document.getElementById('verifyNotice');
         if (verifyNotice) verifyNotice.style.display = 'none';
         authMsg.textContent = '';
+        // 切換authSection樣式
+        if (form === 'none') {
+          authSection.classList.add('logout-only');
+        } else {
+          authSection.classList.remove('logout-only');
+        }
       }
       showForm('login');
       showRegister.onclick = e => { e.preventDefault(); showForm('register'); };
