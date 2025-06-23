@@ -771,7 +771,7 @@
 
       // UI 元素
       const logoutBtn = document.getElementById('logoutBtn');
-      const resendVerifyBtn = document.getElementById('resendVerifyBtn');
+      // const resendVerifyBtn = document.getElementById('resendVerifyBtn'); // 已註解掉，避免 null 錯誤
       const authMsg = document.getElementById('authMsg');
       // 表單
       const loginForm = document.getElementById('loginForm');
@@ -871,8 +871,8 @@
       // ===== 移除重發驗證信功能 =====
       // 狀態監聽
       onAuthStateChanged(auth, (user) => {
-        // 不顯示重發驗證信按鈕
-        resendVerifyBtn.style.display = 'none';
+        // 不顯示重發驗證信按鈕（已移除）
+        // if (resendVerifyBtn) resendVerifyBtn.style.display = 'none';
         if (user) {
           if (!user.emailVerified) {
             logoutBtn.style.display = 'inline-block';
