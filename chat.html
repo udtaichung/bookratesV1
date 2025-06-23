@@ -1193,47 +1193,69 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // 遞迴尋找 shadowRoot 內的 input 或 textarea
+    function findInputElement(root) {
+      if (!root) return null;
+      const input = root.querySelector('input[type="text"], textarea');
+      if (input) return input;
+      // 遍歷所有子元素，檢查是否有 shadowRoot
+      const all = root.querySelectorAll('*');
+      for (const el of all) {
+        if (el.shadowRoot) {
+          const found = findInputElement(el.shadowRoot);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
     // 監聽登入狀態
     onAuthStateChanged(auth, user => {
       if (!user || !user.emailVerified) return;
       setTimeout(() => {
         const chatbot = document.querySelector('.custom-chatbot');
         if (!chatbot || !chatbot.shadowRoot) return;
-        const input = chatbot.shadowRoot.querySelector('input[type="text"], textarea');
+        const input = findInputElement(chatbot.shadowRoot);
         const form = input ? input.closest('form') : null;
         if (!input || !form) return;
         if (form.dataset.firestoreBound) return;
         form.dataset.firestoreBound = "1";
 
         form.addEventListener('submit', async (e) => {
+          // 先取得送出前的內容
           const question = input.value.trim();
           if (!question) return;
-          try {
-            const qRef = collection(db, "users", user.uid, "questions");
-            await addDoc(qRef, {
-              content: question,
-              timestamp: Date.now()
-            });
-            // 扣除 credits
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, {
-              credits: increment(-1)
-            });
-            // 只保留30條
-            const q = query(qRef, orderBy("timestamp", "desc"));
-            const snap = await getDocs(q);
-            if (snap.size > 30) {
-              let count = 0;
-              snap.forEach(async docSnap => {
-                count++;
-                if (count > 30) {
-                  await deleteDoc(doc(db, "users", user.uid, "questions", docSnap.id));
+          // 等 Flowise UI 寫入後再確認輸入框已清空，確保是用戶問題
+          setTimeout(async () => {
+            if (input.value.trim() === '') {
+              try {
+                const qRef = collection(db, "users", user.uid, "questions");
+                await addDoc(qRef, {
+                  content: question,
+                  timestamp: Date.now()
+                });
+                // 扣除 credits
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, {
+                  credits: increment(-1)
+                });
+                // 只保留30條
+                const q = query(qRef, orderBy("timestamp", "desc"));
+                const snap = await getDocs(q);
+                if (snap.size > 30) {
+                  let count = 0;
+                  snap.forEach(async docSnap => {
+                    count++;
+                    if (count > 30) {
+                      await deleteDoc(doc(db, "users", user.uid, "questions", docSnap.id));
+                    }
+                  });
                 }
-              });
+              } catch (err) {
+                console.error("Firestore 提問寫入失敗", err);
+              }
             }
-          } catch (err) {
-            console.error("Firestore 提問寫入失敗", err);
-          }
+          }, 300);
         }, true);
       }, 1200);
     });
