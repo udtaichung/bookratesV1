@@ -267,6 +267,43 @@
     </style>
 </head>
 <body>
+    <!-- Firebase 登入系統 UI (只支援信箱/密碼) -->
+    <div id="authSection" style="position:fixed;top:10px;left:10px;z-index:10010;background:rgba(255,255,255,0.95);padding:12px 18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);min-width:270px;">
+        <div id="authForms">
+            <!-- 登入表單 -->
+            <form id="loginForm" style="display:none;margin-bottom:10px;">
+                <input id="loginEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="loginPassword" type="password" placeholder="密碼" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <button type="submit" class="tutorial-btn tutorial-btn-primary" style="width:100%;margin-bottom:4px;">登入</button>
+                <div style="text-align:right;font-size:13px;">
+                    <a href="#" id="showRegister" style="color:#00b894;">註冊</a> |
+                    <a href="#" id="showForgot" style="color:#0984e3;">忘記密碼</a>
+                </div>
+            </form>
+            <!-- 註冊表單 -->
+            <form id="registerForm" style="display:none;margin-bottom:10px;">
+                <input id="registerEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="registerPassword" type="password" placeholder="密碼(至少6碼)" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <button type="submit" class="tutorial-btn tutorial-btn-primary" style="width:100%;margin-bottom:4px;">註冊</button>
+                <div style="text-align:right;font-size:13px;">
+                    <a href="#" id="showLogin" style="color:#636e72;">已有帳號？登入</a>
+                </div>
+            </form>
+            <!-- 忘記密碼表單 -->
+            <form id="forgotForm" style="display:none;margin-bottom:10px;">
+                <input id="forgotEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <button type="submit" class="tutorial-btn tutorial-btn-secondary" style="width:100%;margin-bottom:4px;">寄送重設密碼信</button>
+                <div style="text-align:right;font-size:13px;">
+                    <a href="#" id="backToLogin" style="color:#636e72;">返回登入</a>
+                </div>
+            </form>
+        </div>
+        <div id="authMsg" style="color:#d35400;font-size:14px;margin-bottom:6px;"></div>
+        <button id="logoutBtn" style="display:none;" class="tutorial-btn tutorial-btn-secondary">登出</button>
+        <span id="userInfo" style="margin-left:10px;color:#1a365d;font-weight:bold;"></span>
+        <button id="resendVerifyBtn" style="display:none;margin-top:6px;" class="tutorial-btn tutorial-btn-secondary">重發驗證信</button>
+    </div>
+
     <div class="content">
         <iframe id="headerFrame" src="header.html"></iframe>
         <iframe id="chatFrame" src="chat.html"></iframe>
@@ -320,37 +357,6 @@
                     <button class="tutorial-btn tutorial-btn-primary" onclick="nextStep()" id="nextBtn">
                         下一步 →
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 當前模式，默認為聊天模式
-        let currentMode = 'chat';
-        // 當前選定的 chatflowId
-        let currentChatflowId = 'c8dc18ab-627a-4a79-8192-1521875e65e5';
-        
-        // ===== 教學引導系統 =====
-        
-        let currentStep = 0;
-        let tutorialActive = false;
-        
-        // 教學步驟配置
-        const tutorialSteps = [
-            {
-                title: "說明文件",
-                description: "點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。",
-                target: "header", // 指向 header iframe
-                selector: ".toggle-switch", // header 內的選擇器
-                position: "bottom"
-            },
-            {
-                title: "LLM模型選擇",
-                description: "在這裡選擇不同的AI模型。直覺型適合一般問答，思考型適合複雜計算。",
-                target: "header",
-                selector: ".chain-selector",
-                position: "bottom"
             },
             {
                 title: "刷新聊天記錄",
@@ -722,6 +728,131 @@
                 resetTutorial();
             }
         });
+    </script>
+
+    <!-- Firebase Auth SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+      import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
+        authDomain: "bookrates-e4157.firebaseapp.com",
+        projectId: "bookrates-e4157",
+        storageBucket: "bookrates-e4157.appspot.com",
+        messagingSenderId: "1063987091365",
+        appId: "1:1063987091365:web:a04f13eb7eb464e7d1fa4c"
+      };
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      // UI 元素
+      const logoutBtn = document.getElementById('logoutBtn');
+      const userInfo = document.getElementById('userInfo');
+      const resendVerifyBtn = document.getElementById('resendVerifyBtn');
+      const authMsg = document.getElementById('authMsg');
+      // 表單
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const forgotForm = document.getElementById('forgotForm');
+      const showRegister = document.getElementById('showRegister');
+      const showLogin = document.getElementById('showLogin');
+      const showForgot = document.getElementById('showForgot');
+      const backToLogin = document.getElementById('backToLogin');
+
+      // UI 切換
+      function showForm(form) {
+        loginForm.style.display = form === 'login' ? 'block' : 'none';
+        registerForm.style.display = form === 'register' ? 'block' : 'none';
+        forgotForm.style.display = form === 'forgot' ? 'block' : 'none';
+        authMsg.textContent = '';
+      }
+      showForm('login');
+      showRegister.onclick = e => { e.preventDefault(); showForm('register'); };
+      showLogin.onclick = e => { e.preventDefault(); showForm('login'); };
+      showForgot.onclick = e => { e.preventDefault(); showForm('forgot'); };
+      backToLogin.onclick = e => { e.preventDefault(); showForm('login'); };
+
+      // 註冊
+      registerForm.onsubmit = async e => {
+        e.preventDefault();
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        try {
+          const result = await createUserWithEmailAndPassword(auth, email, password);
+          await sendEmailVerification(result.user);
+          authMsg.textContent = '註冊成功，驗證信已寄出，請至信箱點擊驗證連結後再登入。';
+          showForm('login');
+        } catch (err) {
+          authMsg.textContent = err.message;
+        }
+      };
+
+      // 登入
+      loginForm.onsubmit = async e => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        try {
+          const result = await signInWithEmailAndPassword(auth, email, password);
+          if (!result.user.emailVerified) {
+            authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
+            resendVerifyBtn.style.display = 'inline-block';
+            logoutBtn.style.display = 'inline-block';
+            userInfo.textContent = '';
+            return;
+          }
+        } catch (err) {
+          authMsg.textContent = err.message;
+        }
+      };
+
+      // 忘記密碼
+      forgotForm.onsubmit = async e => {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail').value;
+        try {
+          await sendPasswordResetEmail(auth, email);
+          authMsg.textContent = '已寄送重設密碼信，請至信箱查收。';
+        } catch (err) {
+          authMsg.textContent = err.message;
+        }
+      };
+
+      // 登出
+      logoutBtn.onclick = async () => {
+        await signOut(auth);
+      };
+      // 重發驗證信
+      resendVerifyBtn.onclick = async () => {
+        if (auth.currentUser) {
+          await sendEmailVerification(auth.currentUser);
+          authMsg.textContent = '驗證信已重新寄出，請至信箱查收。';
+        }
+      };
+
+      // 狀態監聽
+      onAuthStateChanged(auth, (user) => {
+        resendVerifyBtn.style.display = 'none';
+        if (user) {
+          if (!user.emailVerified) {
+            logoutBtn.style.display = 'inline-block';
+            userInfo.textContent = '';
+            authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
+            resendVerifyBtn.style.display = 'inline-block';
+            showForm('login');
+          } else {
+            logoutBtn.style.display = 'inline-block';
+            userInfo.textContent = user.email;
+            authMsg.textContent = '';
+            showForm('none');
+          }
+        } else {
+          logoutBtn.style.display = 'none';
+          userInfo.textContent = '';
+          showForm('login');
+        }
+      });
     </script>
 </body>
 </html>
