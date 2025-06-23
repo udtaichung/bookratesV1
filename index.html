@@ -656,8 +656,7 @@
             createUserWithEmailAndPassword, 
             signInWithEmailAndPassword, 
             signOut, 
-            onAuthStateChanged,
-            sendEmailVerification // 新增
+            onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -681,14 +680,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 全局變数
+        // 全局變數
         window.currentUser = null;
         window.userData = null;
         let isLoginMode = true;
-
-        // 新增：全局暫存 email for resend
-        let lastRegisterUser = null;
-        let lastLoginUser = null;
 
         // 切換登入/註冊模式
         document.getElementById('switchLink').addEventListener('click', function() {
@@ -723,13 +718,6 @@
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                lastLoginUser = userCredential.user;
-                if (!userCredential.user.emailVerified) {
-                    await signOut(auth);
-                    showError('請先至信箱完成驗證，然後再登入。');
-                    showResendVerifyBtn('login');
-                    return;
-                }
                 console.log('登入成功:', userCredential.user);
             } catch (error) {
                 console.error('登入錯誤:', error);
@@ -738,32 +726,6 @@
                 setLoading(false);
             }
         });
-
-        // 顯示成功訊息（可選帶按鈕）
-        function showSuccess(message, withVerifyBtn = false) {
-            const successDiv = document.getElementById('successMessage');
-            successDiv.innerHTML = message;
-            successDiv.style.display = 'block';
-            if (withVerifyBtn) {
-                if (!document.getElementById('verifiedBtn')) {
-                    const btn = document.createElement('button');
-                    btn.id = 'verifiedBtn';
-                    btn.textContent = '已點選驗證，前往登入';
-                    btn.className = 'auth-btn auth-btn-primary';
-                    btn.style.marginTop = '10px';
-                    btn.onclick = function() {
-                        // 關閉成功訊息，切換回登入畫面
-                        successDiv.style.display = 'none';
-                        document.getElementById('registerForm').style.display = 'none';
-                        document.getElementById('loginForm').style.display = 'block';
-                        document.getElementById('switchText').textContent = '還沒有帳號？';
-                        document.getElementById('switchLink').textContent = '立即註冊';
-                        isLoginMode = true;
-                    };
-                    successDiv.appendChild(btn);
-                }
-            }
-        }
 
         // 註冊表單提交
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
@@ -782,13 +744,11 @@
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                lastRegisterUser = userCredential.user;
                 console.log('註冊成功:', userCredential.user);
-                // 新增：寄送驗證信
-                await sendEmailVerification(userCredential.user);
-                showSuccess('註冊成功！驗證信已寄出，請至信箱（包含垃圾郵件夾）點擊驗證連結。驗證後再登入。', true);
-                showResendVerifyBtn('register');
-                await signOut(auth);
+                
+                // 創建用戶資料
+                await createUserData(userCredential.user.uid, email);
+                showSuccess('註冊成功！正在為您登入...');
             } catch (error) {
                 console.error('註冊錯誤:', error);
                 showError(getFirebaseErrorMessage(error.code));
@@ -802,17 +762,18 @@
             const today = new Date().toISOString().split('T')[0];
             const userData = {
                 email: email,
-                level: 3, // 預設 lv3
-                dailyQuestions: 5, // 每日補充: 5
-                questionsLeft: 5, // 剩餘次數 5 (等同於當天已補滿)
+                level: 5,
+                dailyQuestions: 10,
+                questionsLeft: 10,
                 extraCredits: 0,
-                totalQuestions: 0,
-                usageLogs: [],
+                totalQuestions: 0,           // 歷史總發問次數
+                usageLogs: [],               // 使用記錄陣列（簡化格式）
                 lastReset: today,
                 lastUsed: serverTimestamp(),
                 createdAt: serverTimestamp(),
                 isAdmin: email === 'ud.taichung.chatgpt@gmail.com'
             };
+
             try {
                 await setDoc(doc(db, 'users', userId), userData);
                 console.log('用戶資料創建成功:', userData);
@@ -891,26 +852,15 @@
             const lastReset = window.userData.lastReset;
 
             if (lastReset !== today) {
-                let dailyQuestions = window.userData.dailyQuestions || 5; // 注意預設值為 5
-                if (window.userData.level === 5) {
-                    dailyQuestions = 0; // lv5 日配額為 0
-                }
-
-                const prevQuestionsLeft = window.userData.questionsLeft || 0;
-                let newQuestionsLeft = dailyQuestions + prevQuestionsLeft;
-
-                // 防止超過最大限制
-                const maxQuestions = getMaxQuestionsByLevel(window.userData.level || 3);
-                if (newQuestionsLeft > maxQuestions) {
-                    newQuestionsLeft = maxQuestions;
-                }
+                // 需要重置每日次數
+                const updateData = {
+                    questionsLeft: window.userData.dailyQuestions,
+                    lastReset: today
+                };
 
                 try {
-                    await updateDoc(doc(db, 'users', userId), {
-                        questionsLeft: newQuestionsLeft,
-                        lastReset: today
-                    });
-                    window.userData.questionsLeft = newQuestionsLeft;
+                    await updateDoc(doc(db, 'users', userId), updateData);
+                    window.userData.questionsLeft = window.userData.dailyQuestions;
                     window.userData.lastReset = today;
                     updateUsageDisplay();
                     console.log('每日次數已重置');
@@ -920,22 +870,8 @@
             }
         }
 
-        // 獲取每個等級的最大可用次數
-        function getMaxQuestionsByLevel(level) {
-            switch (level) {
-                case 1: return 50;
-                case 2: return 20;
-                case 3: return 10;
-                case 4: return 5;
-                case 5: return 5;
-                default: return 10;
-            }
-        }
-
         // 消耗一次問題次數（新版，含簡化記錄與總次數）
-        window.consumeQuestionCredit = async function(questionText = '') {
-            if (!questionText || questionText.trim() === '') return false;
-
+        window.consumeQuestion = async function(questionText = '') {
             console.log('=== 發送訊息時扣除次數 ===');
             
             if (!window.currentUser || !window.userData) {
@@ -1005,9 +941,9 @@
                     lastUsed: serverTimestamp()
                 };
 
-                // 添加使用記錄到陣列（只保留最近30筆）
+                // 添加使用記錄到陣列（只保留最近24筆）
                 const currentLogs = window.userData.usageLogs || [];
-                const newLogs = [logEntry, ...currentLogs].slice(0, 30); // 只保留最新30筆
+                const newLogs = [logEntry, ...currentLogs].slice(0, 24); // 只保留最近24筆
                 updateData.usageLogs = newLogs;
 
                 await updateDoc(doc(db, 'users', window.currentUser.uid), updateData);
@@ -1032,19 +968,6 @@
                 return false;
             }
         };
-
-        // 產生 YYYYMMDD HHmm\n完整問題 格式的log，並保留最新30筆
-        function generateSimpleLog(questionText) {
-            if (!questionText || questionText.trim() === '') return '';
-            const now = new Date();
-            const pad = n => n.toString().padStart(2, '0');
-            const y = now.getFullYear();
-            const m = pad(now.getMonth() + 1);
-            const d = pad(now.getDate());
-            const h = pad(now.getHours());
-            const min = pad(now.getMinutes());
-            return `${y}${m}${d} ${h}${min}\n${questionText.trim()}`;
-        }
 
         // 檢查問題次數（不扣除）
         window.checkQuestionLimit = async function() {
@@ -1136,9 +1059,9 @@
                     lastUsed: serverTimestamp()
                 };
 
-                // 添加使用記錄（只保留最近30筆）
+                // 添加使用記錄（只保留最近24筆）
                 const currentLogs = window.userData.usageLogs || [];
-                const newLogs = [logEntry, ...currentLogs].slice(0, 30);
+                const newLogs = [logEntry, ...currentLogs].slice(0, 24);
                 updateData.usageLogs = newLogs;
 
                 await updateDoc(doc(db, 'users', window.currentUser.uid), updateData);
@@ -1164,15 +1087,15 @@
             }
         };
 
+        // 保持向後兼容
+        window.consumeQuestion = window.checkQuestionLimit;
+
         // 更新使用次數顯示
         function updateUsageDisplay() {
             if (!window.userData) return;
-            // 顯示用戶等級，預設為 3
-            document.getElementById('userLevel').textContent = window.userData.level || 3;
-            // 取得剩餘次數與額外次數
+            document.getElementById('userLevel').textContent = window.userData.level || 5;
             const questionsLeft = window.userData.questionsLeft || 0;
             const extraCredits = window.userData.extraCredits || 0;
-            // totalQuestions 實際顯示為 questionsLeft + extraCredits
             document.getElementById('totalQuestions').textContent = questionsLeft + extraCredits;
         }
 
@@ -1218,6 +1141,16 @@
             }, 5000);
         }
 
+        // 顯示成功訊息
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
         // 清除訊息
         function clearMessages() {
             document.getElementById('errorMessage').style.display = 'none';
@@ -1240,57 +1173,12 @@
             return errorMessages[errorCode] || '發生未知錯誤，請稍後再試';
         }
 
-        // 新增：顯示重新寄送驗證信按鈕
-        function showResendVerifyBtn(mode) {
-            let btnId = 'resendVerifyBtn';
-            let container = null;
-            if (mode === 'register') {
-                container = document.getElementById('successMessage');
-            } else {
-                container = document.getElementById('errorMessage');
-            }
-            if (!document.getElementById(btnId)) {
-                const btn = document.createElement('button');
-                btn.id = btnId;
-                btn.textContent = '重新寄送驗證信';
-                btn.className = 'auth-btn auth-btn-secondary';
-                btn.style.marginTop = '10px';
-                btn.onclick = async function() {
-                    btn.disabled = true;
-                    btn.textContent = '寄送中...';
-                    try {
-                        let user = mode === 'register' ? lastRegisterUser : lastLoginUser;
-                        if (!user) {
-                            showError('請重新填寫帳號密碼再寄送驗證信');
-                            return;
-                        }
-                        await sendEmailVerification(user);
-                        showSuccess('驗證信已重新寄出，請至信箱（包含垃圾郵件夾）查收。');
-                    } catch (e) {
-                        showError('寄送失敗，請稍後再試');
-                    } finally {
-                        btn.disabled = false;
-                        btn.textContent = '重新寄送驗證信';
-                    }
-                };
-                container.appendChild(btn);
-            }
-        }
-
         // 將 Firebase 函數綁定到全局範圍以供其他腳本使用
         window.auth = auth;
         window.db = db;
         window.getDoc = getDoc;
         window.doc = doc;
         window.updateDoc = updateDoc;
-
-        // 監聽 chatFrame 傳來的 userQuestion 訊息，收到時立即記錄問題
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
-                // 只記錄使用者輸入的問題
-                window.consumeQuestionCredit(event.data.question);
-            }
-        });
     </script>
 
     <script>
