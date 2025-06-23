@@ -2,2161 +2,368 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=no">
-    <title>建築技術規則與台中建管資訊</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body, html {
+        /* 基本樣式設定 */
+        body {
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            height: 100%;
-            background-image: url('texture/wallpaper01.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-        }
-
-        /* ===== 登入系統樣式 ===== */
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+            padding: 0; /* 移除上下的 padding */
+            min-height: 100%;
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background-color: transparent;
             display: flex;
             justify-content: center;
-            align-items: center;
-            z-index: 10000;
         }
-
-        .auth-container {
-            background: linear-gradient(145deg, #ffffff, #f8fafc);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 400px;
+        
+        /* 控制容器樣式 */
+        .controls-container {
             width: 90%;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-            border: 3px solid #00ff88;
-        }
-
-        .auth-title {
-            text-align: center;
-            font-size: 28px;
-            font-weight: bold;
-            color: #1a365d;
-            margin-bottom: 30px;
-            text-shadow: 0 2px 4px rgba(0, 255, 136, 0.3);
-        }
-
-        .auth-subtitle {
-            text-align: center;
-            font-size: 16px;
-            color: #4a5568;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-        }
-
-        .auth-btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-
-        .auth-btn-primary {
-            background: linear-gradient(145deg, #00ff88, #00e676);
-            color: #1a365d;
-        }
-
-        .auth-btn-secondary {
-            background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
-            color: #4a5568;
-        }
-
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .auth-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .auth-switch {
-            text-align: center;
-            margin-top: 20px;
-            color: #4a5568;
-        }
-
-        .auth-switch a {
-            color: #00ff88;
-            text-decoration: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .auth-switch a:hover {
-            text-decoration: underline;
-        }
-
-        .error-message {
-            color: #e53e3e;
-            background: #fed7d7;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .success-message {
-            color: #38a169;
-            background: #c6f6d5;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        /* ===== header-bar 與 usage-info 新樣式 ===== */
-        .header-bar {
+            max-width: 1600px;
+            padding: 0; /* 移除內部 padding */
             display: flex;
-            align-items: center;
+            flex-direction: row;
             justify-content: space-between;
-            width: 100%;
-            height: 80px;
-            background: transparent;
+            align-items: center;
+            gap: 10px;
         }
-        #headerFrame {
-            flex: 1 1 auto;
-            border: none;
-            height: 80px;
-            background: transparent;
-        }
-        @media (max-width: 768px) {
-            .header-bar {
-                flex-direction: column;
-                height: auto;
-                align-items: stretch;
-            }
-        }
-        /* 主內容（聊天）iframe排版 */
-        #mainContent {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        #chatFrame {
-            flex: 1 1 auto;
-            width: 100%;
-            min-height: 0;
-            border: none;
+        
+        /* 下拉選單分隔線樣式 */
+        .chain-selector select option:disabled {
+         font-weight: normal;
+         color: #999;
+         background-color: #f0f0f0;
         }
 
-        /* ===== 簡化的使用次數顯示樣式 ===== */
-        .usage-info {
-            position: fixed;
-            top: 50px; /* 原本20px + 120px = 140px */
-            left: 20px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(248, 250, 252, 0.6)); /* 60%透明 */
-            padding: 6px 10px; /* 原本12px 20px 縮小50% */
-            border-radius: 12.5px; /* 原本25px 縮小50% */
-            border: 1px solid rgba(0, 255, 136, 0.6); /* 邊框也60%透明，厚度縮小50% */
-            box-shadow: 0 2px 7.5px rgba(0, 0, 0, 0.12); /* 縮小50% */
-            z-index: 1000;
+        /* 標題樣式 */
+        .title {
+            font-size: 36px;
+            color: #333;
+            flex: 1;
+            text-align: left;
+            white-space: nowrap; /* 防止標題斷行 */
+            margin: 0; /* 移除標題的 margin */
+        }
+        
+        /* @ 符號樣式 */
+        .title span.at {
+            font-size: 24px;
+            vertical-align: middle;
+        }
+        
+        /* 選擇器樣式 */
+        .chain-selector {
+            width: auto;
+            max-width: 400px;
+            margin: 0; /* 移除 margin */
+        }
+        
+        /* 下拉選單樣式 */
+        .chain-selector select {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(221, 221, 221, 0.5);
+            background-color: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        /* 設定所有 optgroup 的基本樣式 */
+        optgroup {
             font-weight: bold;
-            color: rgba(26, 54, 93, 0.9); /* 文字稍微透明一點保持可讀性 */
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            }
+
+        /* 為直覺型設定藍色 */
+        optgroup[label*="直覺型"] {
+            color: #2c5ea9; /* 藍色 */
+            }
+
+        /* 為思考型設定橙色 */
+        optgroup[label*="思考型"] {
+            color: #f57f17; /* 橙色 */
+            }
+
+        /* 為智能助手設定綠色 */
+        optgroup[label*="Agent"] {
+            color: #2e7d32; /* 綠色 */
+            }
+
+        /* 確保選項保持原來的顏色 */
+        option {
+            color: initial; /* 使用初始顏色，不受 optgroup 顏色影響 */
+            }    
+            
+        /* 開關按鈕容器樣式 */
+        .toggle-switch {
             display: flex;
             align-items: center;
-            gap: 7.5px; /* 原本15px 縮小50% */
-            backdrop-filter: blur(5px); /* 減少模糊效果 */
-            transform: scale(1.0); /* 整體縮小50% */
-            transform-origin: top left; /* 確保從左上角縮放 */
+            margin: 0; /* 移除 margin */
         }
-
-        .usage-info .level-display {
-            color: rgba(0, 255, 136, 0.9);
-            font-size: 8px; /* 原本16px 縮小50% */
-        }
-
-        .usage-info .count-display {
-            color: rgba(33, 150, 243, 0.9);
-            font-size: 9px; /* 原本18px 縮小50% */
-            font-weight: bold;
-        }
-
-        .usage-info .logout-btn {
-            background: linear-gradient(145deg, rgba(254, 215, 215, 0.6), rgba(254, 178, 178, 0.6));
-            color: rgba(116, 42, 42, 0.9);
-            border: none;
-            border-radius: 7.5px; /* 原本15px 縮小50% */
-            padding: 3px 6px; /* 原本6px 12px 縮小50% */
-            font-size: 7px; /* 原本14px 縮小50% */
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .usage-info .logout-btn:hover {
-            transform: translateY(-1px); /* 原本-2px 縮小50% */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12); /* 縮小50% */
-            background: linear-gradient(145deg, rgba(254, 178, 178, 0.6), rgba(252, 129, 129, 0.6));
-        }
-
-        /* 手機版調整 - 同樣縮小50%並下移120px */
-        @media (max-width: 768px) {
-            .usage-info {
-                top: 130px; /* 原本10px + 120px = 130px */
-                left: 10px;
-                right: auto; /* 不要延伸到右邊 */
-                padding: 5px 7.5px; /* 原本10px 15px 縮小50% */
-                font-size: 7px; /* 原本14px 縮小50% */
-                gap: 5px; /* 原本10px 縮小50% */
-                transform: scale(1.0); /* 手機版也縮小50% */
-                transform-origin: top left;
-            }
-            
-            .usage-info .level-display {
-                font-size: 7px; /* 原本14px 縮小50% */
-            }
-            
-            .usage-info .count-display {
-                font-size: 8px; /* 原本16px 縮小50% */
-            }
-            
-            .usage-info .logout-btn {
-                padding: 2.5px 5px; /* 原本5px 10px 縮小50% */
-                font-size: 6px; /* 原本12px 縮小50% */
-            }
-        }
-
-        /* 原有樣式保持不變 */
-        #headerFrame {
-            width: 100%;
-            height: 80px;
-            border: none;
-            background: transparent;
-        }
-
-        #chatFrame {
-            width: 100%;
-            height: calc(100vh - 80px);
-            border: none;
-            background: transparent;
-        }
-
-        .content {
+        
+        /* 開關按鈕外層樣式 */
+        .switch {
             position: relative;
-            z-index: 1;
+            display: inline-block;
+            width: 130px;
+            height: 34px;
         }
-
-        /* ===== 教學引導系統樣式（保持原有） ===== */
-        .tutorial-overlay {
-            display: none;
-            position: fixed;
+        
+        /* 隱藏原始核取方塊 */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        /* 滑動器樣式 */
+        .slider {
+            position: absolute;
+            cursor: pointer;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-            z-index: 9999;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            right: 0;
+            bottom: 0;
+            background-color: #2196F3; /* 藍色背景 - 預設為「說明文件」 */
+            transition: .4s;
+            border-radius: 34px;
         }
-
-        .tutorial-spotlight {
+        
+        /* 滑動器圓形按鈕 */
+        .slider:before {
             position: absolute;
-            border: 4px solid #00ff88;
-            border-radius: 12px;
-            box-shadow: 
-                0 0 0 4px rgba(0, 255, 136, 0.3),
-                0 0 30px rgba(0, 255, 136, 0.8),
-                inset 0 0 0 2px rgba(255, 255, 255, 0.5);
-            background-color: rgba(255, 255, 255, 0.1);
-            pointer-events: none;
-            transition: all 0.3s ease;
-            animation: spotlightPulse 2s infinite;
-        }
-
-        @keyframes spotlightPulse {
-            0%, 100% { 
-                box-shadow: 
-                    0 0 0 4px rgba(0, 255, 136, 0.3),
-                    0 0 30px rgba(0, 255, 136, 0.8),
-                    inset 0 0 0 2px rgba(255, 255, 255, 0.5);
-            }
-            50% { 
-                box-shadow: 
-                    0 0 0 6px rgba(0, 255, 136, 0.5),
-                    0 0 50px rgba(0, 255, 136, 1),
-                    inset 0 0 0 3px rgba(255, 255, 255, 0.8);
-            }
-        }
-
-        .tutorial-tooltip {
-            position: absolute;
-            background: linear-gradient(145deg, #ffffff, #f8fafc);
-            border: 3px solid #00ff88;
-            border-radius: 16px;
-            padding: 25px;
-            max-width: 350px;
-            min-width: 280px;
-            box-shadow: 
-                0 12px 35px rgba(0, 0, 0, 0.4),
-                0 0 20px rgba(0, 255, 136, 0.3);
-            z-index: 10001;
-        }
-
-        .tutorial-tooltip h3 {
-            margin: 0 0 12px 0;
-            color: #1a365d;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-        }
-
-        .tutorial-tooltip .step-icon {
-            background: #00ff88;
-            color: #1a365d;
-            width: 28px;
-            height: 28px;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-right: 10px;
         }
-
-        .tutorial-tooltip p {
-            margin: 0 0 18px 0;
-            color: #2d3748;
-            font-size: 16px;
-            line-height: 1.6;
+        
+        /* 選中狀態的背景色 */
+        input:checked + .slider {
+            background-color: #4CAF50; /* 綠色背景 - 變更為「CHATBOT」 */
         }
-
-        .tutorial-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
+        
+        /* 選中狀態的按鈕位置 */
+        input:checked + .slider:before {
+            transform: translateX(95px);
         }
-
-        .tutorial-btn {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-        }
-
-        .tutorial-btn-primary {
-            background: linear-gradient(145deg, #00ff88, #00e676);
-            color: #1a365d;
-        }
-
-        .tutorial-btn-secondary {
-            background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
-            color: #4a5568;
-        }
-
-        .tutorial-btn-skip {
-            background: linear-gradient(145deg, #fed7d7, #feb2b2);
-            color: #742a2a;
-        }
-
-        .tutorial-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .tutorial-progress {
-            position: fixed;
-            top: 25px;
-            right: 25px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 16px;
-            color: #1a365d;
-            font-weight: bold;
-            z-index: 10002;
-            border: 2px solid #00ff88;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .tutorial-checkbox {
-            display: flex;
-            align-items: center;
-            margin-top: 15px;
-            font-size: 14px;
-            color: #4a5568;
-        }
-
-        .tutorial-checkbox input {
-            margin-right: 10px;
-            transform: scale(1.2);
-        }
-
-        .tutorial-welcome {
-            position: fixed;
+        
+        /* 滑動器文字樣式 */
+        .slider-text {
+            color: white;
+            position: absolute;
+            transform: translate(-50%, -50%);
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(145deg, #ffffff, #f8fafc);
-            border: 4px solid #00ff88;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 
-                0 20px 50px rgba(0, 0, 0, 0.4),
-                0 0 30px rgba(0, 255, 136, 0.4);
-            z-index: 10001;
-            max-width: 500px;
+            font-size: 14px;
         }
 
-        .tutorial-welcome h2 {
-            color: #1a365d;
-            font-size: 28px;
-            margin-bottom: 20px;
-            animation: welcomeGlow 2s infinite alternate;
+        /* 控制項行樣式 */
+        .controls-row {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin: 0; /* 移除 margin */
         }
 
-        @keyframes welcomeGlow {
-            0% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
-            100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
-        }
-
-        .tutorial-welcome p {
-            color: #2d3748;
-            font-size: 18px;
-            line-height: 1.6;
-            margin-bottom: 25px;
-        }
-
-        /* 響應式設計 */
+        /* 手機版樣式設定 */
         @media only screen and (max-width: 768px) {
-            .auth-container {
-                padding: 30px 20px;
+            /* 手機版控制容器垂直排列 */
+            .controls-container {
+                flex-direction: column;
+                align-items: center;
+                padding: 0; /* 確保在手機版也沒有 padding */
             }
             
-            .usage-info {
-                top: 130px; /* 原本10px + 120px = 130px */
-                left: 10px;
-                right: auto; /* 不要延伸到右邊 */
-                padding: 5px 7.5px; /* 原本10px 15px 縮小50% */
-                font-size: 7px; /* 原本14px 縮小50% */
-                gap: 5px; /* 原本10px 縮小50% */
-                transform: scale(0.5); /* 手機版也縮小50% */
-                transform-origin: top left;
+            /* 手機版標題樣式 */
+            .title {
+                font-size: 20px; /* 調小字體以確保一行顯示 */
+                text-align: center;
+                width: 100%;
+                margin: 2px 0; /* 減少標題的 margin */
+                white-space: nowrap; /* 確保不斷行 */
             }
             
-            .usage-info .level-display {
-                font-size: 7px; /* 原本14px 縮小50% */
-            }
-            
-            .usage-info .count-display {
-                font-size: 8px; /* 原本16px 縮小50% */
-            }
-            
-            .usage-info .logout-btn {
-                padding: 2.5px 5px; /* 原本5px 10px 縮小50% */
-                font-size: 6px; /* 原本12px 縮小50% */
-            }
-            
-            .tutorial-tooltip {
-                max-width: 280px;
-                min-width: 250px;
-                padding: 20px;
-            }
-            
-            .tutorial-welcome {
-                max-width: 90%;
-                padding: 30px 20px;
-            }
-            
-            .tutorial-welcome h2 {
-                font-size: 24px;
-            }
-            
-            .tutorial-progress {
-                top: 15px;
-                right: 15px;
+            /* 手機版 @ 符號樣式 */
+            .title span.at {
                 font-size: 14px;
-                padding: 8px 15px;
             }
             
-            .tutorial-tooltip-mobile-adjust {
-                left: 20px !important;
-                right: 20px !important;
-                width: calc(100% - 40px) !important;
-                max-width: none !important;
-                min-width: none !important;
-                transform: none !important;
+            /* 手機版控制項行 */
+            .mobile-controls {
+                display: flex;
+                width: 100%;
+                justify-content: center;
+                align-items: center;
+                margin: 0; /* 移除 margin */
+                gap: 20px; /* 保持間距 */
             }
-        }
-
-        /* 隱藏主要內容直到登入 */
-        .content.hidden {
-            display: none;
-        }
-
-        /* 可選：響應式字體 */
-        @media (max-width: 768px) {
-            #infoText {
-                font-size:14px !important;
+            
+            /* 手機版開關按鈕縮小 */
+            .toggle-switch {
+                transform: scale(0.8);
+                margin: 0; /* 移除 margin */
+            }
+            
+            /* 手機版選擇器縮小 */
+            .chain-selector {
+                transform: scale(0.8);
+                margin: 0; /* 移除 margin */
+                width: auto;
+            }
+            
+            /* 手機版下拉選單文字縮小 */
+            .chain-selector select {
+                font-size: 16px;
+                padding: 8px;
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <!-- 登入/註冊界面 -->
-    <div class="auth-overlay" id="authOverlay">
-        <div class="auth-container">
-            <h2 class="auth-title">🏗️ 建築AI助手</h2>
-            <p class="auth-subtitle">請登入以開始使用建築技術規則與台中建管資訊系統</p>
+    <div class="controls-container" id="controlsContainer">
+        <!-- 標題區塊 -->
+        <div class="title">建築技術規則 <span class="at">@</span> 台中建管 AI</div>
+        
+        <!-- 控制項在手機版會放入此 div -->
+        <div class="mobile-controls">
+            <!-- 模式切換開關 -->
+            <div class="toggle-switch">
+                <label class="switch">
+                    <input type="checkbox" id="modeToggle">
+                    <span class="slider">
+                        <span class="slider-text">說明文件</span>
+                    </span>
+                </label>
+            </div>
             
-            <div id="errorMessage" class="error-message" style="display: none;"></div>
-            <div id="successMessage" class="success-message" style="display: none;"></div>
-            
-            <!-- 登入表單 -->
-            <form id="loginForm">
-                <div class="form-group">
-                    <label class="form-label">電子郵件</label>
-                    <input type="email" id="loginEmail" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">密碼</label>
-                    <input type="password" id="loginPassword" class="form-input" required>
-                </div>
-                <button type="submit" class="auth-btn auth-btn-primary" id="loginBtn">登入</button>
-            </form>
-            
-            <!-- 註冊表單 -->
-            <form id="registerForm" style="display: none;">
-                <div class="form-group">
-                    <label class="form-label">電子郵件</label>
-                    <input type="email" id="registerEmail" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">密碼 (至少6字元)</label>
-                    <input type="password" id="registerPassword" class="form-input" required minlength="6">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">確認密碼</label>
-                    <input type="password" id="confirmPassword" class="form-input" required minlength="6">
-                </div>
-                <button type="submit" class="auth-btn auth-btn-primary" id="registerBtn">註冊</button>
-            </form>
-            
-            <div class="auth-switch">
-                <span id="switchText">還沒有帳號？</span>
-                <a id="switchLink">立即註冊</a>
+            <!-- LLM 模型選擇下拉選單 -->
+            <div class="chain-selector">
+                <select id="chainSelector">
+                    <optgroup label="➤➤➤ Agent ">
+                        <!-- <option disabled style="color: #2e7d32;">➤➤➤ Agent 😎</option> -->
+                        <option value="e4bd4d73-4deb-4e18-83b9-7434c95fbbcc" selected>⭐Agent 智慧助理</option>
+                    <optgroup label="➤➤➤ 直覺型 LLM">
+                        <!--<option disabled style="color: #2c5ea9;">➤➤➤ 直覺型 🙂 </option> -->
+                        <option value="c8dc18ab-627a-4a79-8192-1521875e65e5">🥈Claude Sonnet 4 </option>
+                        <option value="44a6b58e-d6b8-43c5-ab7e-2558925e09d0">🥉GPT 4.1 (會找網路資料) </option>
+                        <option value="28265c21-827f-42d8-9cfb-b49ef6a89aba">🔹Deepseek v3 </option>
+                        <option value="988483dd-ec11-462c-b2c3-b71c17aabd10">🔹Gemini 2.5 pro 0605 🆕</option>
+                    <optgroup label="➤➤➤ 思考型 LLM">
+                        <!--<option disabled style="color: #f57f17;">➤➤➤ 思考型 🤔</option> -->
+                        <!--<option value="dc22907f-0496-40a6-93ab-b77bc2fe3984">🔸Claude Sonnet 3.7 Thinking </option>-->
+                        <option value="7e9f10f8-af3a-495e-8a24-c9c76c359abe">🥇Microsoft: MAI DS R1 </option>
+                        <option value="97bebc44-93d8-49f2-939b-3a05a0677b1e">🔸Qwen QwQ </option>
+                        <option value="ac41f412-8ff8-4c76-90c6-9409fe4b3e19">🔸xAI Grok 3 </option>
+                        <option value="f2d83ff2-c3f8-4f41-8487-36f843c58549">🔸Deepseek R1 0528 🆕</option>
+                        <option value="508ef3c1-4038-4f36-90fa-ea10d7b83443">🔸Deepseek prover v2 </option>
+                        <option value="97f5d567-82d4-486d-af0d-327738b84bb0">🔸Gemini 2.5 flash Thinking </option>
+                    </optgroup>
+                    <!-- <option value="8d39f4ca-5790-46d7-a968-f11cb828bd80" disabled>LLM：newest</option> -->
+                </select>
             </div>
         </div>
     </div>
-
-    <!-- 主要內容 -->
-    <div class="content hidden" id="mainContent">
-        <div style="display:flex; align-items:center; height:80px; padding:0 20px;">
-            <!-- header iframe -->
-            <iframe id="headerFrame" src="header.html" style="flex:1; border:none; height:80px; min-width:0;"></iframe>
-            <span id="infoText" style="font-size:22px; color:#222; margin-left:16px; white-space:nowrap;">
-                lv.<span id="userLevel">5</span>
-                次數:<span id="totalQuestions">5</span>
-                <a id="logoutBtn"
-                   href="#"
-                   onclick="logout()"
-                   style="margin-left:8px; text-decoration:underline; color:#1a365d; cursor:pointer; font-size:14px;"
-                >登出</a>
-            </span>
-        </div>
-        <iframe id="chatFrame" src="chat.html"></iframe>
-    </div>
-
-    <!-- 教學引導系統（保持原有代碼） -->
-    <div class="tutorial-overlay" id="tutorialOverlay">
-        <div class="tutorial-spotlight" id="tutorialSpotlight"></div>
-        <div class="tutorial-progress" id="tutorialProgress">步驟 1 / 4</div>
-        <div class="tutorial-welcome" id="tutorialWelcome">
-            <h2>🏗️ 歡迎使用建築AI助手！</h2>
-            <p>讓我們花1分鐘時間，<br>快速了解系統的主要功能。</p>
-            <div class="tutorial-controls">
-                <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">跳過教學</button>
-                <button class="tutorial-btn tutorial-btn-primary" onclick="startTutorial()">開始導覽 →</button>
-            </div>
-            <div class="tutorial-checkbox">
-                <input type="checkbox" id="dontShowAgain">
-                <label for="dontShowAgain">下次不再顯示此教學</label>
-            </div>
-        </div>
-        <div class="tutorial-tooltip" id="tutorialTooltip" style="display: none;">
-            <h3>
-                <span class="step-icon" id="stepIcon">1</span>
-                <span id="stepTitle">說明文件</span>
-            </h3>
-            <p id="stepDescription">點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。</p>
-            <div class="tutorial-controls">
-                <button class="tutorial-btn tutorial-btn-secondary" onclick="skipTutorial()">跳過</button>
-                <div>
-                    <button class="tutorial-btn tutorial-btn-secondary" onclick="prevStep()" id="prevBtn" style="display: none;">← 上一步</button>
-                    <button class="tutorial-btn tutorial-btn-primary" onclick="nextStep()" id="nextBtn">下一步 →</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 備用監控系統 -->
-    <div id="usageWarning" style="display:none;position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:20000;background:linear-gradient(145deg,#fed7d7,#feb2b2);color:#742a2a;padding:12px 24px;border-radius:16px;font-size:18px;font-weight:bold;box-shadow:0 8px 24px rgba(0,0,0,0.18);border:2px solid #e53e3e;">
-        ⚠️ 您的提問次數已用完，請明日再試或聯絡管理員。
-    </div>
-
-    <!-- Firebase 和應用邏輯 -->
-    <script type="module">
-        // Firebase 配置和初始化
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged,
-            sendEmailVerification // 新增
-        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            getDoc, 
-            updateDoc, 
-            serverTimestamp,
-            collection,
-            addDoc,
-            getDocs
-        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
-            authDomain: "bookrates-e4157.firebaseapp.com",
-            projectId: "bookrates-e4157",
-            storageBucket: "bookrates-e4157.firebasestorage.app",
-            messagingSenderId: "1063987091365",
-            appId: "1:1063987091365:web:a04f13eb7eb464e7d1fa4c"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // 全局變数
-        window.currentUser = null;
-        window.userData = null;
-        let isLoginMode = true;
-
-        // 新增：全局暫存 email for resend
-        let lastRegisterUser = null;
-        let lastLoginUser = null;
-
-        // 切換登入/註冊模式
-        document.getElementById('switchLink').addEventListener('click', function() {
-            isLoginMode = !isLoginMode;
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const switchText = document.getElementById('switchText');
-            const switchLink = document.getElementById('switchLink');
-
-            if (isLoginMode) {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
-                switchText.textContent = '還沒有帳號？';
-                switchLink.textContent = '立即註冊';
-            } else {
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
-                switchText.textContent = '已有帳號？';
-                switchLink.textContent = '立即登入';
-            }
-            clearMessages();
-        });
-
-        // 登入表單提交
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            setLoading(true);
-            clearMessages();
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                lastLoginUser = userCredential.user;
-                if (!userCredential.user.emailVerified) {
-                    await signOut(auth);
-                    showError('請先至信箱完成驗證，然後再登入。');
-                    showResendVerifyBtn('login');
-                    return;
-                }
-                console.log('登入成功:', userCredential.user);
-            } catch (error) {
-                console.error('登入錯誤:', error);
-                showError(getFirebaseErrorMessage(error.code));
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        // 顯示成功訊息（可選帶按鈕）
-        function showSuccess(message, withVerifyBtn = false) {
-            const successDiv = document.getElementById('successMessage');
-            successDiv.innerHTML = message;
-            successDiv.style.display = 'block';
-            if (withVerifyBtn) {
-                if (!document.getElementById('verifiedBtn')) {
-                    const btn = document.createElement('button');
-                    btn.id = 'verifiedBtn';
-                    btn.textContent = '已點選驗證，前往登入';
-                    btn.className = 'auth-btn auth-btn-primary';
-                    btn.style.marginTop = '10px';
-                    btn.onclick = function() {
-                        // 關閉成功訊息，切換回登入畫面
-                        successDiv.style.display = 'none';
-                        document.getElementById('registerForm').style.display = 'none';
-                        document.getElementById('loginForm').style.display = 'block';
-                        document.getElementById('switchText').textContent = '還沒有帳號？';
-                        document.getElementById('switchLink').textContent = '立即註冊';
-                        isLoginMode = true;
-                    };
-                    successDiv.appendChild(btn);
-                }
-            }
-        }
-
-        // 註冊表單提交
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-
-            if (password !== confirmPassword) {
-                showError('密碼與確認密碼不符');
-                return;
-            }
-
-            setLoading(true);
-            clearMessages();
-
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                lastRegisterUser = userCredential.user;
-                console.log('註冊成功:', userCredential.user);
-                // 新增：寄送驗證信
-                await sendEmailVerification(userCredential.user);
-                showSuccess('註冊成功！驗證信已寄出，請至信箱（包含垃圾郵件夾）點擊驗證連結。驗證後再登入。', true);
-                showResendVerifyBtn('register');
-                await signOut(auth);
-            } catch (error) {
-                console.error('註冊錯誤:', error);
-                showError(getFirebaseErrorMessage(error.code));
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        // 創建用戶資料（新版，含總次數與記錄陣列）
-        async function createUserData(userId, email) {
-            const today = new Date().toISOString().split('T')[0];
-            const userData = {
-                email: email,
-                level: 3, // 預設 lv3
-                dailyQuestions: 5, // 每日補充: 5
-                questionsLeft: 5, // 剩餘次數 5 (等同於當天已補滿)
-                extraCredits: 0,
-                totalQuestions: 0,
-                usageLogs: [],
-                lastReset: today,
-                lastUsed: serverTimestamp(),
-                createdAt: serverTimestamp(),
-                isAdmin: email === 'ud.taichung.chatgpt@gmail.com'
-            };
-            try {
-                await setDoc(doc(db, 'users', userId), userData);
-                console.log('用戶資料創建成功:', userData);
-                return userData;
-            } catch (error) {
-                console.error('創建用戶資料錯誤:', error);
-                throw error;
-            }
-        }
-
-        // 登出功能
-        window.logout = async function() {
-            try {
-                await signOut(auth);
-                console.log('登出成功');
-            } catch (error) {
-                console.error('登出錯誤:', error);
-            }
-        };
-
-        // 監聽認證狀態變化
-        onAuthStateChanged(auth, async (user) => {
-            console.log('=== 認證狀態變化 ===');
-            console.log('用戶:', user ? user.email : '未登入');
-            
-            if (user) {
-                window.currentUser = user;
-
-                // 一定要await，等待新帳號資料都ready
-                await loadUserData(user.uid);
-                await checkDailyReset(user.uid);
-
-                // 這時 postMessage 通知 chatFrame popup（或關閉）
-                try {
-                    const chatFrame = document.getElementById("chatFrame");
-                    if (chatFrame && chatFrame.contentWindow) {
-                        chatFrame.contentWindow.postMessage({ type: "clearUsageWarning" }, "*");
-                        chatFrame.contentWindow.postMessage({ type: "checkUsageWarning" }, "*");
-                    }
-                } catch(e) {}
-
-                // 顯示主要內容
-                showMainContent();
-                
-                console.log('用戶載入完成:', window.userData);
-                // ===== 啟動 LocalStorage 監聽器 =====
-                setupStorageListener();
-
-                // ===== 增強版跨iframe問題接收機制 =====
-                if (typeof setupEnhancedReceiving === 'function') setupEnhancedReceiving();
-
-                // 用戶登入後，讀取 Firestore 歷史紀錄並同步到 localStorage
-                await loadUserQuestionsFromFirestore(user.uid);
-            } else {
-                console.log('用戶登出，清除資料');
-                window.currentUser = null;
-                window.userData = null;
-                showAuthOverlay();
-            }
-        });
-
-        // 載入用戶資料
-        async function loadUserData(userId) {
-            try {
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                if (userDoc.exists()) {
-                    window.userData = userDoc.data();
-                    updateUsageDisplay();
-                } else {
-                    // 如果用戶資料不存在，創建默認資料
-                    await createUserData(userId, window.currentUser.email);
-                    await loadUserData(userId);
-                }
-            } catch (error) {
-                console.error('載入用戶資料錯誤:', error);
-            }
-        }
-
-        // 檢查並重置每日次數
-        async function checkDailyReset(userId) {
-            if (!window.userData) return;
-
-            const today = new Date().toISOString().split('T')[0];
-            const lastReset = window.userData.lastReset;
-
-            if (lastReset !== today) {
-                let dailyQuestions = window.userData.dailyQuestions || 5; // 注意預設值為 5
-                if (window.userData.level === 5) {
-                    dailyQuestions = 0; // lv5 日配額為 0
-                }
-
-                const prevQuestionsLeft = window.userData.questionsLeft || 0;
-                let newQuestionsLeft = dailyQuestions + prevQuestionsLeft;
-
-                // 防止超過最大限制
-                const maxQuestions = getMaxQuestionsByLevel(window.userData.level || 3);
-                if (newQuestionsLeft > maxQuestions) {
-                    newQuestionsLeft = maxQuestions;
-                }
-
-                try {
-                    await updateDoc(doc(db, 'users', userId), {
-                        questionsLeft: newQuestionsLeft,
-                        lastReset: today
-                    });
-                    window.userData.questionsLeft = newQuestionsLeft;
-                    window.userData.lastReset = today;
-                    updateUsageDisplay();
-                    console.log('每日次數已重置');
-                } catch (error) {
-                    console.error('重置每日次數錯誤:', error);
-                }
-            }
-        }
-
-        // 獲取每個等級的最大可用次數
-        function getMaxQuestionsByLevel(level) {
-            switch (level) {
-                case 1: return 50;
-                case 2: return 20;
-                case 3: return 10;
-                case 4: return 5;
-                case 5: return 5;
-                default: return 10;
-            }
-        }
-
-        // 檢查問題次數（發送前檢查）
-        window.checkQuestionLimit = async function() {
-            console.log('=== 檢查問題次數（發送前） ===');
-            if (!window.currentUser || !window.userData) {
-                console.error('用戶未登入或資料未載入');
-                return false;
-            }
-            try {
-                const userDoc = await getDoc(doc(db, 'users', window.currentUser.uid));
-                if (userDoc.exists()) {
-                    const latestData = userDoc.data();
-                    window.userData.questionsLeft = latestData.questionsLeft || 0;
-                    window.userData.extraCredits = latestData.extraCredits || 0;
-                    window.userData.totalQuestions = latestData.totalQuestions || 0;
-                    updateUsageDisplay();
-                }
-            } catch (error) {
-                console.error('獲取最新資料失敗:', error);
-            }
-            let questionsLeft = window.userData.questionsLeft || 0;
-            let extraCredits = window.userData.extraCredits || 0;
-            let totalAvailable = questionsLeft + extraCredits;
-            console.log('當前可用次數檢查:', { 
-                email: window.currentUser.email,
-                questionsLeft, 
-                extraCredits,
-                totalAvailable
-            });
-            return totalAvailable > 0;
-        };
-
-        // 實際扣除次數的函數（用戶發送問題時調用）
-        window.consumeQuestionCredit = async function(questionText = '') {
-            console.log('=== 用戶發送問題，立即扣除次數 ===');
-            if (!questionText || questionText.trim() === '') {
-                console.log('❌ 問題為空，不扣除次數');
-                return false;
-            }
-            if (!window.currentUser || !window.userData) {
-                console.error('用戶未登入或資料未載入');
-                return false;
-            }
-            // 再次檢查次數（雙重保險）
-            const hasCredit = await window.checkQuestionLimit();
-            if (!hasCredit) {
-                console.log('❌ 次數不足，取消發送');
-                return false;
-            }
-            let questionsLeft = window.userData.questionsLeft || 0;
-            let extraCredits = window.userData.extraCredits || 0;
-            let totalQuestions = window.userData.totalQuestions || 0;
-            // 決定扣除哪種次數
-            let newQuestionsLeft = questionsLeft;
-            let newExtraCredits = extraCredits;
-            if (questionsLeft > 0) {
-                newQuestionsLeft = questionsLeft - 1;
-                console.log('✅ 扣除一般次數，從', questionsLeft, '變為', newQuestionsLeft);
-            } else {
-                newExtraCredits = extraCredits - 1;
-                console.log('✅ 扣除額外次數，從', extraCredits, '變為', newExtraCredits);
-            }
-            // 增加總發問次數並生成記錄
-            const newTotalQuestions = totalQuestions + 1;
-            const logEntry = generateSimpleLog(questionText);
-            console.log('📝 記錄使用者問題:', logEntry);
-            // 更新資料庫
-            try {
-                const updateData = {
-                    questionsLeft: newQuestionsLeft,
-                    extraCredits: newExtraCredits,
-                    totalQuestions: newTotalQuestions,
-                    lastUsed: serverTimestamp()
-                };
-                // 添加使用記錄（只保留最近30筆）
-                const currentLogs = window.userData.usageLogs || [];
-                const newLogs = [logEntry, ...currentLogs].slice(0, 30);
-                updateData.usageLogs = newLogs;
-                await updateDoc(doc(db, 'users', window.currentUser.uid), updateData);
-                // 更新本地資料
-                window.userData.questionsLeft = newQuestionsLeft;
-                window.userData.extraCredits = newExtraCredits;
-                window.userData.totalQuestions = newTotalQuestions;
-                window.userData.usageLogs = newLogs;
-                updateUsageDisplay();
-                console.log('✅ 次數扣除成功:', { 
-                    question: questionText.substring(0, 50) + '...',
-                    questionsLeft: newQuestionsLeft, 
-                    extraCredits: newExtraCredits,
-                    totalQuestions: newTotalQuestions
-                });
-                return true;
-            } catch (error) {
-                console.error('❌ 扣除次數失敗:', error);
-                return false;
-            }
-        };
-
-        // 產生簡化記錄格式：YYYYMMDD HHmm\n完整問題
-        function generateSimpleLog(questionText) {
-            if (!questionText || questionText.trim() === '') return '';
-            const now = new Date();
-            const pad = n => n.toString().padStart(2, '0');
-            const y = now.getFullYear();
-            const m = pad(now.getMonth() + 1);
-            const d = pad(now.getDate());
-            const h = pad(now.getHours());
-            const min = pad(now.getMinutes());
-            return `${y}${m}${d} ${h}${min}\n${questionText.trim()}`;
-        }
-
-        // 更新使用次數顯示
-        function updateUsageDisplay() {
-            if (!window.userData) return;
-            // 顯示用戶等級，預設為 3
-            document.getElementById('userLevel').textContent = window.userData.level || 3;
-            // 取得剩餘次數與額外次數
-            const questionsLeft = window.userData.questionsLeft || 0;
-            const extraCredits = window.userData.extraCredits || 0;
-            // totalQuestions 實際顯示為 questionsLeft + extraCredits
-            document.getElementById('totalQuestions').textContent = questionsLeft + extraCredits;
-        }
-
-        // 顯示主要內容
-        function showMainContent() {
-            document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('mainContent').classList.remove('hidden');
-            document.getElementById('logoutBtn').style.display = 'block';
-        }
-
-        // 顯示登入界面
-        function showAuthOverlay() {
-            document.getElementById('authOverlay').style.display = 'flex';
-            document.getElementById('mainContent').classList.add('hidden');
-            document.getElementById('logoutBtn').style.display = 'none';
-        }
-
-        // 設置載入狀態
-        function setLoading(loading) {
-            const loginBtn = document.getElementById('loginBtn');
-            const registerBtn = document.getElementById('registerBtn');
-            
-            if (loading) {
-                loginBtn.disabled = true;
-                registerBtn.disabled = true;
-                loginBtn.textContent = '登入中...';
-                registerBtn.textContent = '註冊中...';
-            } else {
-                loginBtn.disabled = false;
-                registerBtn.disabled = false;
-                loginBtn.textContent = '登入';
-                registerBtn.textContent = '註冊';
-            }
-        }
-
-        // 顯示錯誤訊息
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-
-        // 清除訊息
-        function clearMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-
-        // Firebase 錯誤訊息翻譯
-        function getFirebaseErrorMessage(errorCode) {
-            const errorMessages = {
-                'auth/user-not-found': '找不到此電子郵件的帳號',
-                'auth/wrong-password': '密碼錯誤',
-                'auth/email-already-in-use': '此電子郵件已被使用',
-                'auth/weak-password': '密碼太弱，請使用至少6個字元',
-                'auth/invalid-email': '電子郵件格式不正確',
-                'auth/operation-not-allowed': '此操作不被允許',
-                'auth/too-many-requests': '嘗試次數過多，請稍後再試',
-                'auth/user-disabled': '此帳號已被停用',
-                'auth/invalid-credential': '登入憑證無效，請檢查電子郵件和密碼'
-            };
-            return errorMessages[errorCode] || '發生未知錯誤，請稍後再試';
-        }
-
-        // 新增：顯示重新寄送驗證信按鈕
-        function showResendVerifyBtn(mode) {
-            let btnId = 'resendVerifyBtn';
-            let container = null;
-            if (mode === 'register') {
-                container = document.getElementById('successMessage');
-            } else {
-                container = document.getElementById('errorMessage');
-            }
-            if (!document.getElementById(btnId)) {
-                const btn = document.createElement('button');
-                btn.id = btnId;
-                btn.textContent = '重新寄送驗證信';
-                btn.className = 'auth-btn auth-btn-secondary';
-                btn.style.marginTop = '10px';
-                btn.onclick = async function() {
-                    btn.disabled = true;
-                    btn.textContent = '寄送中...';
-                    try {
-                        let user = mode === 'register' ? lastRegisterUser : lastLoginUser;
-                        if (!user) {
-                            showError('請重新填寫帳號密碼再寄送驗證信');
-                            return;
-                        }
-                        await sendEmailVerification(user);
-                        showSuccess('驗證信已重新寄出，請至信箱（包含垃圾郵件夾）查收。');
-                    } catch (e) {
-                        showError('寄送失敗，請稍後再試');
-                    } finally {
-                        btn.disabled = false;
-                        btn.textContent = '重新寄送驗證信';
-                    }
-                };
-                container.appendChild(btn);
-            }
-        }
-
-        // 將 Firebase 函數綁定到全局範圍以供其他腳本使用
-        window.auth = auth;
-        window.db = db;
-        window.getDoc = getDoc;
-        window.doc = doc;
-        window.updateDoc = updateDoc;
-
-        // 監聽 chatFrame 傳來的 userQuestion 訊息，收到時立即記錄問題
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
-                // 立即記錄使用者的問題（發送時機）
-                console.log('🎯 收到用戶問題，立即記錄:', event.data.question.substring(0, 30) + '...');
-                window.consumeQuestionCredit(event.data.question);
-            }
-        });
-
-        // ===== 步驟 2：LocalStorage 監聽邏輯 =====
-        // 1. 定義與 iframe 約定好的鍵名
-        const STORAGE_KEY = 'new_user_question';
-
-        // 2. 設定 storage 事件監聽器
-        function setupStorageListener() {
-            window.addEventListener('storage', (event) => {
-                // 確認是我們約定好的鍵，並且有新的值
-                if (event.key === STORAGE_KEY && event.newValue) {
-                    console.log('📬 收到來自 LocalStorage 的新問題通知');
-                    try {
-                        const payload = JSON.parse(event.newValue);
-                        if (payload && payload.question) {
-                            // 執行核心的扣點與記錄邏輯
-                            window.consumeQuestionCredit(payload.question);
-                        }
-                    } catch (error) {
-                        console.error('❌ 解析 LocalStorage 資料失敗:', error);
-                    } finally {
-                        // *** 關鍵步驟 ***：
-                        // 無論成功與否，都立即清除這個鍵，防止重複處理
-                        localStorage.removeItem(STORAGE_KEY);
-                        console.log('🧹 已清理 LocalStorage 鍵值');
-                    }
-                }
-            });
-            // 處理頁面剛載入時可能殘留的舊資料
-            const residualData = localStorage.getItem(STORAGE_KEY);
-            if (residualData) {
-                console.warn('⚠️ 發現上次殘留的問題，將進行處理...');
-                // 手動觸發一次處理流程
-                const manualEvent = { key: STORAGE_KEY, newValue: residualData };
-                // 模擬事件觸發
-                window.dispatchEvent(new StorageEvent('storage', manualEvent));
-            }
-            console.log('🎧 LocalStorage 監聽器已啟動');
-        }
-
-        // 用戶登入後，讀取 Firestore 歷史紀錄並同步到 localStorage
-        async function loadUserQuestionsFromFirestore(userId) {
-            const qSnap = await getDocs(collection(db, 'users', userId, 'questions'));
-            const questions = [];
-            qSnap.forEach(doc => {
-                questions.push({ ...doc.data(), synced: true });
-            });
-            // 同步到 localStorage
-            localStorage.setItem('user_questions', JSON.stringify(questions));
-            return questions;
-        }
-
-        // 寫入 Firestore
-        async function saveQuestionToFirestore(userId, record) {
-            try {
-                await addDoc(collection(db, 'users', userId, 'questions'), record);
-                return true;
-            } catch (e) {
-                console.error('Firestore 寫入失敗:', e);
-                return false;
-            }
-        }
-
-        // 監聽 chat.html 的 postMessage
-        window.addEventListener('message', async function(event) {
-            if (event.data && event.data.type === 'syncQuestionToFirestore' && event.data.record) {
-                if (!window.currentUser) return;
-                const userId = window.currentUser.uid;
-                // 取得 localStorage 所有未同步的紀錄
-                let questions = JSON.parse(localStorage.getItem('user_questions') || '[]');
-                let updated = false;
-                for (let q of questions) {
-                    if (!q.synced) {
-                        const ok = await saveQuestionToFirestore(userId, q);
-                        if (ok) {
-                            q.synced = true;
-                            updated = true;
-                        }
-                    }
-                }
-                if (updated) {
-                    localStorage.setItem('user_questions', JSON.stringify(questions));
-                }
-            }
-        });
-
-        // 用戶登入後自 Firestore 讀取歷史紀錄
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                await loadUserQuestionsFromFirestore(user.uid);
-                // ...原有登入後流程...
-            }
-        });
-    </script>
-
+    
     <script>
-        // 原有的教學引導和訊息處理邏輯保持不變
-        let currentMode = 'chat';
-        let currentChatflowId = 'c8dc18ab-627a-4a79-8192-1521875e65e5';
-        
-        // 教學引導系統變數
-        let currentStep = 0;
-        let tutorialActive = false;
-        
-        const tutorialSteps = [
-            {
-                title: "說明文件",
-                description: "點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。",
-                target: "header",
-                selector: ".toggle-switch",
-                position: "bottom"
-            },
-            {
-                title: "LLM模型選擇",
-                description: "在這裡選擇不同的AI模型。直覺型適合一般問答，思考型適合複雜計算。",
-                target: "header",
-                selector: ".chain-selector",
-                position: "bottom"
-            },
-            {
-                title: "刷新聊天記錄",
-                description: "點擊此按鈕可以清空當前對話，開始新的對話。這是 Flowise 內建的功能。",
-                target: "header",
-                selector: ".chain-selector",
-                position: "relative",
-                offsetX: 50,
-                offsetY: 50
-            },
-            {
-                title: "下載儲存",
-                description: "聊天結束後，可以將對話記錄儲存為TXT、Word、PDF或長截圖格式。",
-                target: "chat",
-                selector: ".pdf-button",
-                position: "left"
-            }
-        ];
-        
-        // 檢查是否需要顯示教學
-        function checkShowTutorial() {
-            const dontShow = localStorage.getItem('tutorial-dont-show');
-            if (!dontShow) {
-                setTimeout(showTutorial, 1000);
-            }
+        // 檢測是否為手機裝置，並調整布局
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                  (window.innerWidth <= 768);
         }
         
-        function showTutorial() {
-            tutorialActive = true;
-            document.getElementById('tutorialOverlay').style.display = 'block';
-            document.getElementById('tutorialWelcome').style.display = 'block';
-        }
-        
-        function startTutorial() {
-            document.getElementById('tutorialWelcome').style.display = 'none';
-            document.getElementById('tutorialTooltip').style.display = 'block';
-            currentStep = 0;
-            showStep(currentStep);
-        }
-        
-        function showStep(stepIndex) {
-            if (stepIndex >= tutorialSteps.length) {
-                completeTutorial();
-                return;
-            }
+        // 在頁面載入和視窗大小改變時調整布局
+        function adjustLayout() {
+            const container = document.getElementById('controlsContainer');
+            const title = document.querySelector('.title');
+            const mobileControls = document.querySelector('.mobile-controls');
+            const toggleSwitch = document.querySelector('.toggle-switch');
+            const chainSelector = document.querySelector('.chain-selector');
             
-            const step = tutorialSteps[stepIndex];
-            const spotlight = document.getElementById('tutorialSpotlight');
-            const tooltip = document.getElementById('tutorialTooltip');
-            const progress = document.getElementById('tutorialProgress');
-            
-            progress.textContent = `步驟 ${stepIndex + 1} / ${tutorialSteps.length}`;
-            
-            document.getElementById('stepIcon').textContent = stepIndex + 1;
-            document.getElementById('stepTitle').textContent = step.title;
-            document.getElementById('stepDescription').textContent = step.description;
-            
-            document.getElementById('prevBtn').style.display = stepIndex > 0 ? 'inline-block' : 'none';
-            document.getElementById('nextBtn').textContent = stepIndex === tutorialSteps.length - 1 ? '完成' : '下一步 →';
-            
-            positionElements(step, spotlight, tooltip);
-        }
-        
-        function positionElements(step, spotlight, tooltip) {
-            let targetFrame, targetElement;
-            
-            if (step.target === 'header') {
-                targetFrame = document.getElementById('headerFrame');
-            } else if (step.target === 'chat') {
-                targetFrame = document.getElementById('chatFrame');
-            }
-            
-            setTimeout(() => {
-                try {
-                    const frameDoc = targetFrame.contentDocument || targetFrame.contentWindow.document;
-                    targetElement = frameDoc.querySelector(step.selector);
-                    
-                    if (targetElement) {
-                        const frameRect = targetFrame.getBoundingClientRect();
-                        const elementRect = targetElement.getBoundingClientRect();
-                        
-                        let absoluteRect = {
-                            top: frameRect.top + elementRect.top,
-                            left: frameRect.left + elementRect.left,
-                            width: elementRect.width,
-                            height: elementRect.height,
-                            right: frameRect.left + elementRect.right,
-                            bottom: frameRect.top + elementRect.bottom
-                        };
-                        
-                        const isMobile = window.innerWidth <= 768;
-                        
-                        if (step.position === 'relative') {
-                            let spotlightOffsetX = (step.offsetX || 0) - 30;
-                            let spotlightOffsetY = (step.offsetY || 0);
-                            
-                            if (isMobile) {
-                                spotlightOffsetX -= 20;
-                                spotlightOffsetY -= 30;
-                            }
-                            
-                            let spotlightRect = {
-                                top: absoluteRect.bottom + spotlightOffsetY,
-                                left: absoluteRect.right + spotlightOffsetX,
-                                width: 40,
-                                height: 40,
-                                right: absoluteRect.right + spotlightOffsetX + 40,
-                                bottom: absoluteRect.bottom + spotlightOffsetY + 40
-                            };
-                            
-                            spotlight.style.top = (spotlightRect.top - 8) + 'px';
-                            spotlight.style.left = (spotlightRect.left - 8) + 'px';
-                            spotlight.style.width = (spotlightRect.width + 16) + 'px';
-                            spotlight.style.height = (spotlightRect.height + 16) + 'px';
-                            spotlight.style.display = 'block';
-                            
-                            absoluteRect = {
-                                ...absoluteRect,
-                                top: absoluteRect.bottom + 120,
-                                left: absoluteRect.right - 50
-                            };
-                        } else {
-                            spotlight.style.top = (absoluteRect.top - 8) + 'px';
-                            spotlight.style.left = (absoluteRect.left - 8) + 'px';
-                            spotlight.style.width = (absoluteRect.width + 16) + 'px';
-                            spotlight.style.height = (absoluteRect.height + 16) + 'px';
-                            spotlight.style.display = 'block';
-                        }
-                        
-                        positionTooltip(tooltip, absoluteRect, step.position === 'relative' ? 'left' : step.position);
-                        
-                    } else {
-                        console.warn('找不到目標元素:', step.selector);
-                        spotlight.style.display = 'none';
-                        tooltip.style.top = '50%';
-                        tooltip.style.left = '50%';
-                        tooltip.style.transform = 'translate(-50%, -50%)';
-                    }
-                } catch (e) {
-                    console.error('定位元素時發生錯誤:', e);
-                    spotlight.style.display = 'none';
-                    tooltip.style.top = '50%';
-                    tooltip.style.left = '50%';
-                    tooltip.style.transform = 'translate(-50%, -50%)';
+            if (isMobileDevice()) {
+                // 將開關和選擇器移到 mobile-controls 中
+                if (!mobileControls.contains(toggleSwitch)) {
+                    mobileControls.appendChild(toggleSwitch);
                 }
-            }, 500);
-        }
-        
-        function positionTooltip(tooltip, targetRect, position) {
-            const tooltipWidth = 350;
-            const tooltipHeight = 200;
-            const padding = 20;
-            
-            let top, left, transform = '';
-            
-            const isMobile = window.innerWidth <= 768;
-            
-            if (currentStep === 3) {
-                targetRect = {
-                    ...targetRect,
-                    top: targetRect.top - 50,
-                    left: targetRect.left - 50,
-                    right: targetRect.right - 50,
-                    bottom: targetRect.bottom - 50
-                };
-            }
-            
-            switch (position) {
-                case 'top':
-                    top = targetRect.top - tooltipHeight - padding;
-                    left = targetRect.left + (targetRect.width / 2);
-                    transform = 'translateX(-50%)';
-                    break;
-                case 'bottom':
-                    top = targetRect.bottom + padding;
-                    left = targetRect.left + (targetRect.width / 2);
-                    transform = 'translateX(-50%)';
-                    break;
-                case 'left':
-                    top = targetRect.top + (targetRect.height / 2);
-                    left = targetRect.left - tooltipWidth - padding;
-                    transform = 'translateY(-50%)';
-                    break;
-                case 'right':
-                    top = targetRect.top + (targetRect.height / 2);
-                    left = targetRect.right + padding;
-                    transform = 'translateY(-50%)';
-                    break;
-                default:
-                    top = targetRect.bottom + padding;
-                    left = targetRect.left;
-                    break;
-            }
-            
-            if (isMobile && (currentStep === 0 || currentStep === 1)) {
-                left = 20;
-                transform = 'none';
-                tooltip.classList.add('tutorial-tooltip-mobile-adjust');
+                if (!mobileControls.contains(chainSelector)) {
+                    mobileControls.appendChild(chainSelector);
+                }
             } else {
-                tooltip.classList.remove('tutorial-tooltip-mobile-adjust');
-            }
-            
-            if (!isMobile || (currentStep !== 0 && currentStep !== 1)) {
-                const maxWidth = window.innerWidth - tooltipWidth - padding;
-                const maxHeight = window.innerHeight - tooltipHeight - padding;
-                
-                if (left < padding) left = padding;
-                if (left > maxWidth) left = maxWidth;
-                if (top < padding) top = padding;
-                if (top > maxHeight) top = maxHeight;
-            }
-            
-            tooltip.style.top = top + 'px';
-            tooltip.style.left = left + 'px';
-            tooltip.style.transform = transform;
-        }
-        
-        function nextStep() {
-            currentStep++;
-            if (currentStep >= tutorialSteps.length) {
-                completeTutorial();
-            } else {
-                showStep(currentStep);
-            }
-        }
-        
-        function prevStep() {
-            if (currentStep > 0) {
-                currentStep--;
-                showStep(currentStep);
-            }
-        }
-        
-        function skipTutorial() {
-            const dontShowAgain = document.getElementById('dontShowAgain').checked;
-            if (dontShowAgain) {
-                localStorage.setItem('tutorial-dont-show', 'true');
-            }
-            hideTutorial();
-        }
-        
-        function completeTutorial() {
-            const tooltip = document.getElementById('tutorialTooltip');
-            tooltip.innerHTML = `
-                <h3>
-                    <span class="step-icon">✓</span>
-                    教學完成！
-                </h3>
-                <p>您已經了解了系統的主要功能。現在可以開始使用建築AI助手了！</p>
-                <div class="tutorial-checkbox">
-                    <input type="checkbox" id="completeDontShowAgain">
-                    <label for="completeDontShowAgain">下次不用顯示此教學</label>
-                </div>
-                <div class="tutorial-controls">
-                    <button class="tutorial-btn tutorial-btn-primary" onclick="finishTutorial()">
-                        開始使用 →
-                    </button>
-                </div>
-            `;
-            
-            document.getElementById('tutorialSpotlight').style.display = 'none';
-        }
-        
-        function finishTutorial() {
-            const dontShowAgain = document.getElementById('completeDontShowAgain').checked;
-            if (dontShowAgain) {
-                localStorage.setItem('tutorial-dont-show', 'true');
-            }
-            hideTutorial();
-        }
-        
-        function hideTutorial() {
-            document.getElementById('tutorialOverlay').style.display = 'none';
-            tutorialActive = false;
-        }
-        
-        function resetTutorial() {
-            localStorage.removeItem('tutorial-dont-show');
-            location.reload();
-        }
-        
-        // 處理從 header 接收的消息
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'chatflowChange') {
-                currentChatflowId = event.data.chatflowId;
-                
-                if (currentMode === 'chat') {
-                    document.getElementById('chatFrame').src = 
-                        `chat.html?chatflowid=${currentChatflowId}`;
+                // 桌面版布局：將開關和選擇器直接放在 container 中
+                if (!container.contains(toggleSwitch) || mobileControls.contains(toggleSwitch)) {
+                    container.appendChild(toggleSwitch);
+                }
+                if (!container.contains(chainSelector) || mobileControls.contains(chainSelector)) {
+                    container.appendChild(chainSelector);
                 }
             }
-            else if (event.data && event.data.type === 'modeChange') {
-                currentMode = event.data.mode;
-                
-                if (currentMode === 'chat') {
-                    document.getElementById('chatFrame').src = 
-                        `chat.html?chatflowid=${currentChatflowId}`;
-                } else {
-                    document.getElementById('chatFrame').src = 'intro.html';
-                }
-            }
-        });
+        }
         
-        // 頁面載入完成後的邏輯調整
+        // 設定初始顯示狀態
         window.addEventListener('load', function() {
-            // 只有在用戶登入後才檢查教學
-            if (window.currentUser) {
-                checkShowTutorial();
-            }
-        });
-        
-        // 視窗大小改變時重新定位
-        window.addEventListener('resize', function() {
-            if (tutorialActive && currentStep < tutorialSteps.length) {
-                setTimeout(() => showStep(currentStep), 100);
-            }
-        });
-        
-        // 開發者工具：按 Ctrl+Alt+R 重置教學
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.altKey && e.key === 'r') {
-                e.preventDefault();
-                resetTutorial();
-            }
-        });
-    </script>
-
-    <script>
-    // 1. 備用監控系統 - 防止手機版攔截失敗
-    let lastQuestionTime = 0;
-    let lastChatLength = 0;
-    let monitoringActive = false;
-    const DUPLICATE_THRESHOLD = 2000; // 2秒內的重複問題視為同一個
-
-    // 2. 增強版 userQuestion 訊息處理
-    window.addEventListener('message', function(event) {
-        // 原有的 userQuestion 處理
-        if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
-            const now = Date.now();
-            const attempt = event.data.attempt || 1;
-            // 防重複檢查
-            if (now - lastQuestionTime < DUPLICATE_THRESHOLD) {
-                console.log('⚠️ 重複問題，忽略 (間隔:', now - lastQuestionTime, 'ms)');
-                return;
-            }
-            lastQuestionTime = now;
-            console.log(`🎯 收到用戶問題 (嘗試 ${attempt}):`, event.data.question.substring(0, 30) + '...');
-            window.consumeQuestionCredit(event.data.question);
-        }
-        // 處理顯示警告訊息
-        if (event.data && event.data.type === "showUsageWarning") {
-            document.getElementById('usageWarning').style.display = 'block';
-        }
-        // 處理清除警告訊息
-        if (event.data && event.data.type === "clearUsageWarning") {
-            document.getElementById('usageWarning').style.display = 'none';
-        }
-        // 處理檢查警告狀態
-        if (event.data && event.data.type === "checkUsageWarning") {
-            if (window.currentUser && typeof window.checkQuestionLimit === 'function') {
-                window.checkQuestionLimit().then(hasCredit => {
-                    if (!hasCredit) {
-                        document.getElementById('usageWarning').style.display = 'block';
-                    } else {
-                        document.getElementById('usageWarning').style.display = 'none';
-                    }
-                });
-            }
-        }
-    });
-
-    // 3. 備用監控機制 - 監控聊天內容變化
-    function startChatMonitoring() {
-        if (monitoringActive) return;
-        monitoringActive = true;
-        console.log('🔍 啟動備用聊天監控機制');
-        function monitorChatChanges() {
-            if (!window.currentUser) {
-                setTimeout(monitorChatChanges, 3000);
-                return;
-            }
-            try {
-                const chatFrame = document.getElementById('chatFrame');
-                if (!chatFrame || !chatFrame.contentWindow) {
-                    setTimeout(monitorChatChanges, 2000);
-                    return;
-                }
-                const chatDoc = chatFrame.contentDocument || chatFrame.contentWindow.document;
-                const chatbot = chatDoc.querySelector('.custom-chatbot');
-                if (chatbot && chatbot.shadowRoot) {
-                    // 尋找用戶訊息（多種可能的 class 名稱）
-                    const userMessageSelectors = [
-                        '[data-role="user"]',
-                        '.user-message',
-                        '.message-user',
-                        '.message[data-type="user"]',
-                        '.chat-message-user',
-                        '[class*="user"]'
-                    ];
-                    let userMessages = [];
-                    for (const selector of userMessageSelectors) {
-                        const found = chatbot.shadowRoot.querySelectorAll(selector);
-                        if (found.length > 0) {
-                            userMessages = Array.from(found);
-                            break;
-                        }
-                    }
-                    // 檢查是否有新訊息
-                    if (userMessages.length > lastChatLength) {
-                        const newMessages = userMessages.slice(lastChatLength);
-                        newMessages.forEach(msgElement => {
-                            const messageText = msgElement.textContent || msgElement.innerText;
-                            if (messageText && messageText.trim()) {
-                                const cleanText = messageText.trim();
-                                // 避免處理重複訊息
-                                const now = Date.now();
-                                if (now - lastQuestionTime < DUPLICATE_THRESHOLD) {
-                                    return;
-                                }
-                                console.log('🔍 備用監控檢測到新用戶訊息:', cleanText.substring(0, 30) + '...');
-                                lastQuestionTime = now;
-                                // 記錄問題
-                                if (typeof window.consumeQuestionCredit === 'function') {
-                                    window.consumeQuestionCredit(cleanText);
-                                }
-                            }
-                        });
-                        lastChatLength = userMessages.length;
-                    }
-                }
-            } catch (e) {
-                // 靜默處理錯誤，避免 console 被spam
-            }
-            // 每2秒檢查一次
-            setTimeout(monitorChatChanges, 2000);
-        }
-        // 延遲啟動，確保用戶已登入
-        setTimeout(monitorChatChanges, 5000);
-    }
-
-    // 4. 檢測是否為手機設備
-    function isMobileDevice() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-            || window.innerWidth <= 768;
-    }
-
-    // 5. 手機版特殊處理
-    function setupMobileSpecificHandling() {
-        if (!isMobileDevice()) return;
-        console.log('📱 設置手機版特殊處理');
-        // 手機版延長各種等待時間
-        const originalSetTimeout = window.setTimeout;
-        // 監聽 iframe 載入事件
-        const chatFrame = document.getElementById('chatFrame');
-        if (chatFrame) {
-            chatFrame.addEventListener('load', function() {
-                console.log('📱 手機版 chatFrame 載入完成');
-                // 給手機版更多時間初始化
-                setTimeout(() => {
-                    // 向 iframe 發送初始化完成訊息
-                    try {
-                        chatFrame.contentWindow.postMessage({
-                            type: 'parentReady',
-                            isMobile: true
-                        }, '*');
-                    } catch (e) {
-                        console.log('📱 無法發送 parentReady 訊息:', e);
-                    }
-                }, 3000);
-            });
-        }
-        // 手機版觸摸優化
-        document.addEventListener('touchstart', function() {
-            // 喚醒可能休眠的事件監聽器
-        }, { passive: true });
-    }
-
-    // 6. 強化版認證狀態監聽
-    const originalAuthStateListener = onAuthStateChanged;
-    if (originalAuthStateListener) {
-        onAuthStateChanged(auth, async (user) => {
-            console.log('=== 認證狀態變化（增強版） ===');
-            console.log('用戶:', user ? user.email : '未登入');
-            console.log('設備類型:', isMobileDevice() ? '手機' : '桌機');
-            if (user) {
-                window.currentUser = user;
-                // 載入用戶資料
-                await loadUserData(user.uid);
-                await checkDailyReset(user.uid);
-                // 啟動備用監控（特別重要給手機版）
-                startChatMonitoring();
-                // 手機版特殊處理
-                setupMobileSpecificHandling();
-                // 通知 chatFrame
-                setTimeout(() => {
-                    try {
-                        const chatFrame = document.getElementById("chatFrame");
-                        if (chatFrame && chatFrame.contentWindow) {
-                            chatFrame.contentWindow.postMessage({ 
-                                type: "clearUsageWarning" 
-                            }, "*");
-                            setTimeout(() => {
-                                chatFrame.contentWindow.postMessage({ 
-                                    type: "checkUsageWarning" 
-                                }, "*");
-                            }, 1000);
-                        }
-                    } catch(e) {
-                        console.log('無法與 chatFrame 通訊:', e);
-                    }
-                }, 2000);
-                // 顯示主要內容
-                showMainContent();
-                console.log('✅ 用戶載入完成，監控系統已啟動');
-                // ===== 啟動 LocalStorage 監聽器 =====
-                setupStorageListener();
-            } else {
-                console.log('用戶登出，停止監控');
-                monitoringActive = false;
-                window.currentUser = null;
-                window.userData = null;
-                showAuthOverlay();
-            }
-        });
-    }
-
-    // 7. 全局錯誤處理
-    window.addEventListener('error', function(e) {
-        if (e.message && e.message.includes('postMessage')) {
-            console.log('⚠️ postMessage 相關錯誤，這在手機版很常見:', e.message);
-        }
-    });
-
-    // 8. 視窗焦點處理（手機版重要）
-    window.addEventListener('focus', function() {
-        if (isMobileDevice() && window.currentUser) {
-            // 手機版重新獲得焦點時，重新檢查狀態
-            setTimeout(() => {
-                if (typeof window.checkQuestionLimit === 'function') {
-                    window.checkQuestionLimit().then(hasCredit => {
-                        const warningEl = document.getElementById('usageWarning');
-                        if (warningEl) {
-                            warningEl.style.display = hasCredit ? 'none' : 'block';
-                        }
-                    });
-                }
-            }, 1000);
-        }
-    });
-
-    console.log('🔧 備用監控機制已設置完成');
-
-    // ====== MutationObserver 聊天監控系統 ======
-    let chatMutationObserver = null;
-    let lastUserMessageCount = 0;
-    let isMonitoringActive = false;
-
-    // 啟動聊天監控
-    function startChatMonitoring() {
-        if (isMonitoringActive) return;
-        isMonitoringActive = true;
-        
-        console.log('🔍 啟動 MutationObserver 聊天監控');
-        
-        function setupObserver() {
-            try {
-                const chatFrame = document.getElementById('chatFrame');
-                if (!chatFrame || !chatFrame.contentDocument) {
-                    setTimeout(setupObserver, 2000);
-                    return;
-                }
-                
-                const chatDoc = chatFrame.contentDocument;
-                const chatbot = chatDoc.querySelector('.custom-chatbot');
-                
-                if (!chatbot || !chatbot.shadowRoot) {
-                    setTimeout(setupObserver, 2000);
-                    return;
-                }
-                
-                console.log('✅ 找到 chatbot shadow DOM，開始監控');
-                
-                // 監控 shadow DOM 內容變化
-                chatMutationObserver = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                            // 檢查是否有新的用戶訊息
-                            mutation.addedNodes.forEach((node) => {
-                                if (node.nodeType === Node.ELEMENT_NODE) {
-                                    // 檢查是否是用戶訊息（多種可能的選擇器）
-                                    const isUserMessage = 
-                                        node.matches && (
-                                            node.matches('[data-role="user"]') ||
-                                            node.matches('.user-message') ||
-                                            node.matches('.message-user') ||
-                                            node.matches('[class*="user"]')
-                                        ) ||
-                                        node.querySelector && (
-                                            node.querySelector('[data-role="user"]') ||
-                                            node.querySelector('.user-message') ||
-                                            node.querySelector('.message-user') ||
-                                            node.querySelector('[class*="user"]')
-                                        );
-                                    
-                                    if (isUserMessage) {
-                                        const messageText = node.textContent || node.innerText || '';
-                                        if (messageText.trim()) {
-                                            console.log('🎯 MutationObserver 檢測到新用戶訊息:', messageText.substring(0, 50) + '...');
-                                            
-                                            // 直接記錄問題
-                                            if (typeof window.consumeQuestionCredit === 'function') {
-                                                window.consumeQuestionCredit(messageText.trim());
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    });
-                });
-                
-                // 開始監控
-                chatMutationObserver.observe(chatbot.shadowRoot, {
-                    childList: true,
-                    subtree: true,
-                    attributes: false
-                });
-                
-                console.log('🎉 MutationObserver 監控已啟動');
-                
-            } catch (error) {
-                console.log('❌ 設置 MutationObserver 失敗:', error);
-                setTimeout(setupObserver, 3000);
-            }
-        }
-        
-        // 延遲啟動
-        setTimeout(setupObserver, 3000);
-    }
-
-    // 停止監控
-    function stopChatMonitoring() {
-        if (chatMutationObserver) {
-            chatMutationObserver.disconnect();
-            chatMutationObserver = null;
-        }
-        isMonitoringActive = false;
-        console.log('🛑 聊天監控已停止');
-    }
-
-    // 當用戶登入時啟動監控
-    const originalOnAuthStateChanged = onAuthStateChanged;
-    if (originalOnAuthStateChanged) {
-        onAuthStateChanged(auth, async (user) => {
-            console.log('=== 認證狀態變化（MutationObserver 版） ===');
-            console.log('用戶:', user ? user.email : '未登入');
+            // 取得開關元素
+            const toggleSwitch = document.getElementById('modeToggle');
+            const sliderText = document.querySelector('.slider-text');
             
-            if (user) {
-                window.currentUser = user;
-
-                // 載入用戶資料
-                await loadUserData(user.uid);
-                await checkDailyReset(user.uid);
-
-                // 啟動 MutationObserver 監控
-                startChatMonitoring();
-
-                // 通知 chatFrame
-                setTimeout(() => {
-                    try {
-                        const chatFrame = document.getElementById("chatFrame");
-                        if (chatFrame && chatFrame.contentWindow) {
-                            chatFrame.contentWindow.postMessage({ 
-                                type: "clearUsageWarning" 
-                            }, "*");
-                            
-                            setTimeout(() => {
-                                chatFrame.contentWindow.postMessage({ 
-                                    type: "checkUsageWarning" 
-                                }, "*");
-                            }, 1000);
-                        }
-                    } catch(e) {
-                        console.log('無法與 chatFrame 通訊:', e);
-                    }
-                }, 2000);
-
-                // 顯示主要內容
-                showMainContent();
-                
-                console.log('✅ 用戶載入完成，MutationObserver 監控已啟動');
+            // 設定初始文字為「說明文件」
+            sliderText.textContent = '說明文件';
+            
+            // 確保開關處於未勾選狀態（重要）
+            toggleSwitch.checked = false;
+            
+            // 調整布局
+            adjustLayout();
+            
+            // 發送初始模式訊息 - 應該是「聊天機器人」模式
+            window.parent.postMessage({
+                type: 'modeChange',
+                mode: 'chat'
+            }, '*');
+            
+            // 發送初始選擇的模型
+            window.parent.postMessage({
+                type: 'chatflowChange',
+                chatflowId: document.getElementById('chainSelector').value
+            }, '*');
+        });
+        
+        // 視窗大小改變時調整布局
+        window.addEventListener('resize', adjustLayout);
+        
+        // 下拉選單變更事件處理
+        document.getElementById('chainSelector').addEventListener('change', function() {
+            // 向父頁面發送變更訊息
+            window.parent.postMessage({
+                type: 'chatflowChange',
+                chatflowId: this.value
+            }, '*');
+        });
+        
+        // 模式切換開關事件處理
+        document.getElementById('modeToggle').addEventListener('change', function() {
+            // 根據勾選狀態更新文字和頁面
+            if (this.checked) {
+                // 勾選狀態（綠色）- 顯示 CHATBOT 文字，但實際顯示說明文件頁面
+                this.parentElement.querySelector('.slider-text').textContent = 'CHATBOT';
+                window.parent.postMessage({
+                    type: 'modeChange',
+                    mode: 'intro'
+                }, '*');
             } else {
-                console.log('用戶登出，停止監控');
-                stopChatMonitoring();
-                window.currentUser = null;
-                window.userData = null;
-                showAuthOverlay();
+                // 未勾選狀態（藍色）- 顯示說明文件文字，但實際顯示聊天機器人頁面
+                this.parentElement.querySelector('.slider-text').textContent = '說明文件';
+                window.parent.postMessage({
+                    type: 'modeChange',
+                    mode: 'chat'
+                }, '*');
             }
         });
-    }
-
-    // 當 iframe 重新載入時重新啟動監控
-    window.addEventListener('message', function(event) {
-        // 處理原有訊息
-        if (event.data && event.data.type === 'userQuestion' && typeof event.data.question === 'string') {
-            console.log('🎯 收到 postMessage 用戶問題:', event.data.question.substring(0, 30) + '...');
-            window.consumeQuestionCredit(event.data.question);
-        }
-        
-        // 當切換 LLM 時重新啟動監控
-        if (event.data && event.data.type === 'chatflowChange') {
-            console.log('🔄 LLM 切換，重新啟動監控');
-            stopChatMonitoring();
-            setTimeout(() => {
-                if (window.currentUser) {
-                    startChatMonitoring();
-                }
-            }, 3000);
-        }
-    });
-
-    // 監聽 iframe 載入完成
-    document.addEventListener('DOMContentLoaded', function() {
-        const chatFrame = document.getElementById('chatFrame');
-        if (chatFrame) {
-            chatFrame.addEventListener('load', function() {
-                console.log('📱 iframe 載入完成，重新啟動監控');
-                if (window.currentUser && !isMonitoringActive) {
-                    setTimeout(startChatMonitoring, 2000);
-                }
-            });
-        }
-    });
-
-    console.log('🔧 MutationObserver 監控系統已設置完成');
-    </script>
-
-    <script>
-    // ===== 增強版跨iframe問題接收機制 =====
-    let processedQuestions = new Set();
-    function setupEnhancedReceiving() {
-        // 方法 1: 增強版 LocalStorage 監聽
-        function setupStorageMonitoring() {
-            const STORAGE_KEY = 'new_user_question';
-            window.addEventListener('storage', function(event) {
-                if (event.key === STORAGE_KEY && event.newValue) {
-                    try {
-                        const payload = JSON.parse(event.newValue);
-                        if (payload && payload.question && !payload.processed) {
-                            const questionId = payload.question + '_' + payload.timestamp;
-                            if (!processedQuestions.has(questionId)) {
-                                processedQuestions.add(questionId);
-                                processQuestion(payload.question);
-                                payload.processed = true;
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-                            }
-                        }
-                    } catch (e) {}
-                }
-            });
-            setInterval(() => {
-                try {
-                    const data = localStorage.getItem(STORAGE_KEY);
-                    if (data) {
-                        const payload = JSON.parse(data);
-                        if (payload && payload.question && !payload.processed) {
-                            const questionId = payload.question + '_' + payload.timestamp;
-                            if (!processedQuestions.has(questionId)) {
-                                processedQuestions.add(questionId);
-                                processQuestion(payload.question);
-                                payload.processed = true;
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-                            }
-                        }
-                    }
-                } catch (e) {}
-            }, 2000);
-        }
-        // 方法 2: 自定義事件監聽
-        function setupCustomEventListening() {
-            document.addEventListener('userQuestionDetected', function(event) {
-                if (event.detail && event.detail.question) {
-                    const questionId = event.detail.question + '_' + event.detail.timestamp;
-                    if (!processedQuestions.has(questionId)) {
-                        processedQuestions.add(questionId);
-                        processQuestion(event.detail.question);
-                    }
-                }
-            });
-            window.addEventListener('userQuestionDetected', function(event) {
-                if (event.detail && event.detail.question) {
-                    const questionId = event.detail.question + '_' + event.detail.timestamp;
-                    if (!processedQuestions.has(questionId)) {
-                        processedQuestions.add(questionId);
-                        processQuestion(event.detail.question);
-                    }
-                }
-            });
-        }
-        // 方法 3: 週期性檢查 iframe window 標記
-        function setupWindowFlagMonitoring() {
-            setInterval(() => {
-                try {
-                    const chatFrame = document.getElementById('chatFrame');
-                    if (chatFrame && chatFrame.contentWindow && chatFrame.contentWindow.latestUserQuestion) {
-                        const question = chatFrame.contentWindow.latestUserQuestion;
-                        if (question && !question.processed) {
-                            const questionId = question.text + '_' + question.timestamp;
-                            if (!processedQuestions.has(questionId)) {
-                                processedQuestions.add(questionId);
-                                processQuestion(question.text);
-                                chatFrame.contentWindow.latestUserQuestion.processed = true;
-                            }
-                        }
-                    }
-                } catch (e) {}
-            }, 1500);
-        }
-        // 統一處理問題的函數
-        function processQuestion(questionText) {
-            if (typeof window.consumeQuestionCredit === 'function') {
-                window.consumeQuestionCredit(questionText);
-            }
-        }
-        // 清理過期的處理記錄
-        setInterval(() => {
-            if (processedQuestions.size > 100) processedQuestions.clear();
-        }, 60000);
-        // 啟動所有接收方法
-        setupStorageMonitoring();
-        setupCustomEventListening();
-        setupWindowFlagMonitoring();
-        console.log('🚀 增強版接收機制已啟動');
-    }
-    // ===== iframe 載入時強化處理 =====
-    document.addEventListener('DOMContentLoaded', function() {
-        const chatFrame = document.getElementById('chatFrame');
-        if (chatFrame) {
-            chatFrame.addEventListener('load', function() {
-                setTimeout(() => {
-                    try {
-                        chatFrame.contentWindow.postMessage({
-                            type: 'parentReady',
-                            enhancedMode: true,
-                            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-                        }, '*');
-                    } catch (e) {}
-                    if (window.currentUser && typeof setupEnhancedReceiving === 'function') {
-                        setupEnhancedReceiving();
-                    }
-                }, 3000);
-            });
-        }
-    });
     </script>
 </body>
 </html>
