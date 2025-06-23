@@ -1178,7 +1178,7 @@
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
     // 與 index.html 相同的 firebaseConfig
     const firebaseConfig = {
@@ -1259,12 +1259,28 @@
         const pad = n => n.toString().padStart(2, '0');
         const logStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())} ${pad(now.getHours())}${pad(now.getMinutes())} ${msg}`;
         usageLogs.push(logStr);
-        await updateDoc(userDocRef, {
-            questionsLeft: left - 1,
-            totalQuestions: (userData.totalQuestions || 0) + 1,
-            lastUsed: serverTimestamp(),
-            usageLogs: usageLogs.slice(-100)
-        });
+        try {
+            if (!snap.exists()) {
+                // 文件不存在，先建立
+                await setDoc(userDocRef, {
+                    questionsLeft: left - 1,
+                    totalQuestions: 1,
+                    lastUsed: serverTimestamp(),
+                    usageLogs: usageLogs.slice(-100)
+                });
+                console.log('[Firestore] user 文件不存在，已自動建立');
+            } else {
+                await updateDoc(userDocRef, {
+                    questionsLeft: left - 1,
+                    totalQuestions: (userData.totalQuestions || 0) + 1,
+                    lastUsed: serverTimestamp(),
+                    usageLogs: usageLogs.slice(-100)
+                });
+                console.log('[Firestore] user 文件已更新');
+            }
+        } catch (e) {
+            console.error('[Firestore] 寫入錯誤', e);
+        }
     }
     </script>
 </body>
