@@ -305,9 +305,9 @@
             </form>
         </div>
         <div id="authMsg" style="color:#d35400;font-size:14px;margin-bottom:6px;"></div>
-        <button id="logoutBtn" style="display:none;" class="tutorial-btn tutorial-btn-secondary">登出</button>
-        <span id="userInfo" style="margin-left:10px;color:#1a365d;font-weight:bold;"></span>
-        <button id="resendVerifyBtn" style="display:none;margin-top:6px;" class="tutorial-btn tutorial-btn-secondary">重發驗證信</button>
+        <button id="logoutBtn" style="display:none;position:absolute;top:0;left:0;width:32px;height:80px;line-height:1.2;writing-mode:vertical-rl;text-align:center;font-size:16px;letter-spacing:2px;" class="tutorial-btn tutorial-btn-secondary">登出</button>
+        <!-- <span id="userInfo" style="margin-left:10px;color:#1a365d;font-weight:bold;"></span> -->
+        <!-- <button id="resendVerifyBtn" style="display:none;margin-top:6px;" class="tutorial-btn tutorial-btn-secondary">重發驗證信</button> -->
     </div>
 
     <div class="content">
@@ -771,7 +771,6 @@
 
       // UI 元素
       const logoutBtn = document.getElementById('logoutBtn');
-      const userInfo = document.getElementById('userInfo');
       const resendVerifyBtn = document.getElementById('resendVerifyBtn');
       const authMsg = document.getElementById('authMsg');
       // 表單
@@ -835,7 +834,6 @@
             authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
             // 不顯示重發驗證信按鈕
             logoutBtn.style.display = 'inline-block';
-            userInfo.textContent = '';
             return;
           }
         } catch (err) {
@@ -871,19 +869,19 @@
         if (user) {
           if (!user.emailVerified) {
             logoutBtn.style.display = 'inline-block';
-            userInfo.textContent = '';
+            // userInfo.textContent = '';
             authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
             // 不顯示重發驗證信按鈕
             showForm('login');
           } else {
             logoutBtn.style.display = 'inline-block';
-            userInfo.textContent = user.email;
+            // userInfo.textContent = user.email;
             authMsg.textContent = '';
             showForm('none');
           }
         } else {
           logoutBtn.style.display = 'none';
-          userInfo.textContent = '';
+          // userInfo.textContent = '';
           showForm('login');
         }
       });
