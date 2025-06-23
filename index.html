@@ -284,6 +284,7 @@
             <form id="registerForm" style="display:none;margin-bottom:10px;">
                 <input id="registerEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
                 <input id="registerPassword" type="password" placeholder="密碼(至少6碼)" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="registerPassword2" type="password" placeholder="再次輸入密碼" required style="width:90%;margin-bottom:6px;padding:6px;">
                 <button type="submit" class="tutorial-btn tutorial-btn-primary" style="width:100%;margin-bottom:4px;">註冊</button>
                 <div style="text-align:right;font-size:13px;">
                     <a href="#" id="showLogin" style="color:#636e72;">已有帳號？登入</a>
@@ -778,6 +779,11 @@
         e.preventDefault();
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
+        const password2 = document.getElementById('registerPassword2').value;
+        if (password !== password2) {
+          authMsg.textContent = '兩次輸入的密碼不一致，請重新確認。';
+          return;
+        }
         try {
           const result = await createUserWithEmailAndPassword(auth, email, password);
           await sendEmailVerification(result.user);
