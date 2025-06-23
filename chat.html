@@ -207,11 +207,13 @@
 <body>
     <div class="chatbot-container">
         <flowise-fullchatbot class="custom-chatbot"></flowise-fullchatbot>
+        
         <button class="pdf-button" id="saveButton" title="另存聊天記錄">
             <svg class="pdf-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
             </svg>
         </button>
+        
         <div class="export-dialog" id="exportDialog">
             <div class="export-title">儲存為</div>
             <button id="saveTxtButton">📝 TXT </button>
@@ -662,6 +664,7 @@
                                 bold: isUserBlock ? true : undefined
                             })]
                         }));
+                    });
                 }
 
                 children.push(new Paragraph({
@@ -1171,100 +1174,98 @@
         })
     </script>
 
-    <!-- Firebase/Firestore 提問紀錄獨立模組，不影響 Flowise 聊天 UI -->
+    <!-- Firestore 問題次數與 usageLogs 控制 -->
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, orderBy, getDocs, deleteDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-    // 與 index.html 相同的 config
+    // 與 index.html 相同的 firebaseConfig
     const firebaseConfig = {
-      apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
-      authDomain: "bookrates-e4157.firebaseapp.com",
-      projectId: "bookrates-e4157",
-      storageBucket: "bookrates-e4157.appspot.com",
-      messagingSenderId: "1063987091365",
-      appId: "1:1063987091365:web:a04f13eb7eb464e7d1fa4c"
+        apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
+        authDomain: "bookrates-e4157.firebaseapp.com",
+        projectId: "bookrates-e4157",
+        storageBucket: "bookrates-e4157.appspot.com",
+        messagingSenderId: "1063987091365",
+        appId: "1:1063987091365:web:a04f13eb7eb464e7d1fa4c"
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 遞迴尋找 shadowRoot 內的 input 或 textarea
-    function findInputElement(root) {
-      if (!root) return null;
-      const input = root.querySelector('input[type="text"], textarea');
-      if (input) return input;
-      // 遍歷所有子元素，檢查是否有 shadowRoot
-      const all = root.querySelectorAll('*');
-      for (const el of all) {
-        if (el.shadowRoot) {
-          const found = findInputElement(el.shadowRoot);
-          if (found) return found;
+    let lastUserMsgCount = 0;
+    let lastUserMsgs = [];
+    let userDocRef = null;
+    let userData = null;
+    let intervalStarted = false;
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user && user.emailVerified) {
+            userDocRef = doc(db, "users", user.uid);
+            // 讀取現有 user 資料
+            const snap = await getDoc(userDocRef);
+            userData = snap.exists() ? snap.data() : null;
+            if (!intervalStarted) {
+                setInterval(checkUserMessage, 1500);
+                intervalStarted = true;
+            }
         }
-      }
-      return null;
+    });
+
+    function checkUserMessage() {
+        const chatbot = document.querySelector('.custom-chatbot');
+        if (!chatbot || !chatbot.shadowRoot) return;
+        const selectors = [
+            '.border-transparent',
+            '.flex.items-start',
+            '.overflow-y-auto .flex'
+        ];
+        let messageContainers = [];
+        for (const selector of selectors) {
+            messageContainers = chatbot.shadowRoot.querySelectorAll(selector);
+            if (messageContainers && messageContainers.length > 0) break;
+        }
+        // 只抓用戶訊息（index % 2 !== 0）
+        const userMsgs = [];
+        messageContainers.forEach((container, idx) => {
+            if (idx % 2 !== 0) {
+                const msg = container.textContent.trim();
+                if (msg) userMsgs.push(msg);
+            }
+        });
+        // 新增訊息
+        if (userMsgs.length > lastUserMsgCount) {
+            const newMsg = userMsgs[userMsgs.length - 1];
+            handleUserQuestion(newMsg);
+        }
+        lastUserMsgCount = userMsgs.length;
+        lastUserMsgs = userMsgs;
     }
 
-    // 監聽登入狀態
-    onAuthStateChanged(auth, user => {
-      if (!user || !user.emailVerified) return;
-
-      // 綁定 submit 事件的主流程，確保不會動到 Flowise embed 內部結構
-      function bindSubmitListener() {
-        const chatbot = document.querySelector('.custom-chatbot');
-        if (!chatbot || !chatbot.shadowRoot) {
-          console.log('[Firestore] 找不到 .custom-chatbot 或其 shadowRoot');
-          return;
+    async function handleUserQuestion(msg) {
+        if (!userDocRef) return;
+        // 重新抓一次 userData
+        const snap = await getDoc(userDocRef);
+        userData = snap.exists() ? snap.data() : {};
+        // 檢查剩餘次數
+        let left = userData.questionsLeft ?? 5;
+        if (left <= 0) {
+            // 只記錄，不阻止 UI
+            return;
         }
-        const input = findInputElement(chatbot.shadowRoot);
-        const form = input ? input.closest('form') : null;
-        if (!input || !form) {
-          console.log('[Firestore] 找不到 input 或 form');
-          return;
-        }
-        if (form.dataset.firestoreBound) return;
-        form.dataset.firestoreBound = "1";
-        console.log('[Firestore] 成功綁定 submit 事件');
-
-        form.addEventListener('submit', async (e) => {
-          // 先取得送出前的內容
-          const question = input.value.trim();
-          if (!question) return;
-          // 等 Flowise UI 寫入後再確認輸入框已清空，確保是用戶問題
-          setTimeout(async () => {
-            if (input.value.trim() === '') {
-              try {
-                // 扣除 questionsLeft，不寫入發問紀錄
-                const userRef = doc(db, "users", user.uid);
-                await updateDoc(userRef, {
-                  questionsLeft: increment(-1)
-                });
-                console.log('[Firestore] 已扣除 questionsLeft -1');
-              } catch (err) {
-                console.error("Firestore 扣除 questionsLeft 失敗", err, {
-                  uid: user.uid,
-                  email: user.email,
-                  emailVerified: user.emailVerified
-                });
-              }
-            }
-          }, 300);
-        }, true);
-      }
-
-      // 初次綁定
-      setTimeout(bindSubmitListener, 1200);
-
-      // 若 Flowise embed 介面有重建（如 chatflowId 切換），自動重新綁定
-      const observer = new MutationObserver(() => {
-        setTimeout(bindSubmitListener, 800);
-      });
-      const container = document.querySelector('.chatbot-container');
-      if (container) {
-        observer.observe(container, { childList: true, subtree: true });
-      }
-    });
+        // 更新 Firestore
+        const usageLogs = userData.usageLogs || [];
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const logStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())} ${pad(now.getHours())}${pad(now.getMinutes())} ${msg}`;
+        usageLogs.push(logStr);
+        await updateDoc(userDocRef, {
+            questionsLeft: left - 1,
+            totalQuestions: (userData.totalQuestions || 0) + 1,
+            lastUsed: serverTimestamp(),
+            usageLogs: usageLogs.slice(-100)
+        });
+    }
     </script>
 </body>
 </html>
