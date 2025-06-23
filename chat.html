@@ -1211,14 +1211,23 @@
     // 監聽登入狀態
     onAuthStateChanged(auth, user => {
       if (!user || !user.emailVerified) return;
-      setTimeout(() => {
+
+      // 綁定 submit 事件的主流程，確保不會動到 Flowise embed 內部結構
+      function bindSubmitListener() {
         const chatbot = document.querySelector('.custom-chatbot');
-        if (!chatbot || !chatbot.shadowRoot) return;
+        if (!chatbot || !chatbot.shadowRoot) {
+          console.log('[Firestore] 找不到 .custom-chatbot 或其 shadowRoot');
+          return;
+        }
         const input = findInputElement(chatbot.shadowRoot);
         const form = input ? input.closest('form') : null;
-        if (!input || !form) return;
+        if (!input || !form) {
+          console.log('[Firestore] 找不到 input 或 form');
+          return;
+        }
         if (form.dataset.firestoreBound) return;
         form.dataset.firestoreBound = "1";
+        console.log('[Firestore] 成功綁定 submit 事件');
 
         form.addEventListener('submit', async (e) => {
           // 先取得送出前的內容
@@ -1233,6 +1242,7 @@
                 await updateDoc(userRef, {
                   questionsLeft: increment(-1)
                 });
+                console.log('[Firestore] 已扣除 questionsLeft -1');
               } catch (err) {
                 console.error("Firestore 扣除 questionsLeft 失敗", err, {
                   uid: user.uid,
@@ -1243,7 +1253,19 @@
             }
           }, 300);
         }, true);
-      }, 1200);
+      }
+
+      // 初次綁定
+      setTimeout(bindSubmitListener, 1200);
+
+      // 若 Flowise embed 介面有重建（如 chatflowId 切換），自動重新綁定
+      const observer = new MutationObserver(() => {
+        setTimeout(bindSubmitListener, 800);
+      });
+      const container = document.querySelector('.chatbot-container');
+      if (container) {
+        observer.observe(container, { childList: true, subtree: true });
+      }
     });
     </script>
 </body>
