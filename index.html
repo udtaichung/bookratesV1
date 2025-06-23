@@ -380,6 +380,9 @@
     <!-- 下載按鈕區塊（如有） -->
     <!-- ...原有下載功能區塊保留... -->
 
+    <!-- 半透明遮罩層（未登入時顯示） -->
+    <div id="loginOverlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:10005;pointer-events:auto;display:none;"></div>
+
     <script>
         // 教學步驟陣列（移到 JS 內部）
         const tutorialSteps = [
@@ -801,6 +804,7 @@
       // UI 切換
       function showForm(form) {
         const authSection = document.getElementById('authSection');
+        const loginOverlay = document.getElementById('loginOverlay');
         // 只控制表單與驗證提示，不隱藏 authSection
         loginForm.style.display = form === 'login' ? 'block' : 'none';
         registerForm.style.display = form === 'register' ? 'block' : 'none';
@@ -811,8 +815,10 @@
         // 切換authSection樣式
         if (form === 'none') {
           authSection.classList.add('logout-only');
+          if (loginOverlay) loginOverlay.style.display = 'none';
         } else {
           authSection.classList.remove('logout-only');
+          if (loginOverlay) loginOverlay.style.display = 'block';
         }
       }
       showForm('login');
