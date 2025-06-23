@@ -664,7 +664,6 @@
                                 bold: isUserBlock ? true : undefined
                             })]
                         }));
-                    });
                 }
 
                 children.push(new Paragraph({
@@ -1229,13 +1228,17 @@
           setTimeout(async () => {
             if (input.value.trim() === '') {
               try {
-                // 只扣除 credits，不寫入發問紀錄
+                // 扣除 questionsLeft，不寫入發問紀錄
                 const userRef = doc(db, "users", user.uid);
                 await updateDoc(userRef, {
-                  credits: increment(-1)
+                  questionsLeft: increment(-1)
                 });
               } catch (err) {
-                console.error("Firestore 扣除次數失敗", err);
+                console.error("Firestore 扣除 questionsLeft 失敗", err, {
+                  uid: user.uid,
+                  email: user.email,
+                  emailVerified: user.emailVerified
+                });
               }
             }
           }, 300);
