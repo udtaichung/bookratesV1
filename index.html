@@ -838,7 +838,11 @@
             return;
           }
         } catch (err) {
-          authMsg.textContent = err.message;
+          if (err.code === 'auth/invalid-credential') {
+            authMsg.textContent = '未註冊';
+          } else {
+            authMsg.textContent = err.message;
+          }
         }
       };
 
