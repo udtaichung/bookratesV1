@@ -1261,8 +1261,15 @@
         usageLogs.push(logStr);
         try {
             if (!snap.exists()) {
-                // 文件不存在，先建立
+                // 文件不存在，先建立，補齊所有欄位
                 await setDoc(userDocRef, {
+                    email: auth.currentUser?.email || "",
+                    createdAt: serverTimestamp(),
+                    isAdmin: false,
+                    level: 1,
+                    dailyQuestions: 5,
+                    extraCredits: 0,
+                    lastReset: new Date().toISOString().slice(0, 10),
                     questionsLeft: left - 1,
                     totalQuestions: 1,
                     lastUsed: serverTimestamp(),
