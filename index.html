@@ -290,6 +290,11 @@
                     <a href="#" id="showLogin" style="color:#636e72;">已有帳號？登入</a>
                 </div>
             </form>
+            <!-- 註冊後顯示信箱驗證提示與確認按鈕 -->
+            <div id="verifyNotice" style="display:none;margin-bottom:10px;text-align:center;">
+                <div style="color:#16a085;font-size:15px;margin-bottom:10px;">註冊成功，驗證信已寄出，請至信箱點擊驗證連結。</div>
+                <button id="verifyCheckBtn" class="tutorial-btn tutorial-btn-primary" style="width:100%;">我已完成信箱驗證，前往登入</button>
+            </div>
             <!-- 忘記密碼表單 -->
             <form id="forgotForm" style="display:none;margin-bottom:10px;">
                 <input id="forgotEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
@@ -787,13 +792,19 @@
         try {
           const result = await createUserWithEmailAndPassword(auth, email, password);
           await sendEmailVerification(result.user);
-          authMsg.textContent = '註冊成功，驗證信已寄出，請至信箱點擊驗證連結後再登入。';
-          showForm('login');
+          authMsg.textContent = '';
+          registerForm.style.display = 'none';
+          document.getElementById('verifyNotice').style.display = 'block';
         } catch (err) {
           authMsg.textContent = err.message;
         }
       };
-
+      // 註冊後「我已完成信箱驗證」按鈕
+      document.getElementById('verifyCheckBtn').onclick = function() {
+        document.getElementById('verifyNotice').style.display = 'none';
+        showForm('login');
+        authMsg.textContent = '請登入，若尚未驗證信箱請先完成信箱驗證。';
+      };
       // 登入
       loginForm.onsubmit = async e => {
         e.preventDefault();
