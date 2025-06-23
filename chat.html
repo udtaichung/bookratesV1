@@ -1196,51 +1196,48 @@
     // 監聽登入狀態
     onAuthStateChanged(auth, user => {
       if (!user || !user.emailVerified) return;
-      // 監聽聊天輸入送出事件
       setTimeout(() => {
-        // 嘗試抓 Flowise 聊天輸入框與送出按鈕
         const chatbot = document.querySelector('.custom-chatbot');
         if (!chatbot || !chatbot.shadowRoot) return;
-        // 可能的輸入框選擇器
         const input = chatbot.shadowRoot.querySelector('input[type="text"], textarea');
         const form = input ? input.closest('form') : null;
         if (!input || !form) return;
-
-        // 防止重複綁定
         if (form.dataset.firestoreBound) return;
         form.dataset.firestoreBound = "1";
 
         form.addEventListener('submit', async (e) => {
-          // 等 Flowise UI 寫入後再抓內容
+          // 先取得送出前的內容
+          const question = input.value.trim();
+          if (!question) return;
+          // 等 Flowise UI 寫入後再確認輸入框已清空，確保是用戶問題
           setTimeout(async () => {
-            const question = input.value.trim();
-            if (!question) return;
-            try {
-              // 寫入 Firestore
-              const qRef = collection(db, "users", user.uid, "questions");
-              await addDoc(qRef, {
-                content: question,
-                timestamp: Date.now()
-              });
-              // 只保留30條
-              const q = query(qRef, orderBy("timestamp", "desc"));
-              const snap = await getDocs(q);
-              if (snap.size > 30) {
-                let count = 0;
-                snap.forEach(async docSnap => {
-                  count++;
-                  if (count > 30) {
-                    await deleteDoc(doc(db, "users", user.uid, "questions", docSnap.id));
-                  }
+            // 若送出後 input.value 變空，代表剛剛送出的是用戶問題
+            if (input.value.trim() === '') {
+              try {
+                const qRef = collection(db, "users", user.uid, "questions");
+                await addDoc(qRef, {
+                  content: question,
+                  timestamp: Date.now()
                 });
+                // 只保留30條
+                const q = query(qRef, orderBy("timestamp", "desc"));
+                const snap = await getDocs(q);
+                if (snap.size > 30) {
+                  let count = 0;
+                  snap.forEach(async docSnap => {
+                    count++;
+                    if (count > 30) {
+                      await deleteDoc(doc(db, "users", user.uid, "questions", docSnap.id));
+                    }
+                  });
+                }
+              } catch (err) {
+                console.error("Firestore 提問寫入失敗", err);
               }
-            } catch (err) {
-              // 可選：顯示錯誤訊息
-              console.error("Firestore 提問寫入失敗", err);
             }
-          }, 300); // 等待 Flowise UI 寫入
+          }, 300);
         }, true);
-      }, 1200); // 等待 Flowise 聊天元件載入
+      }, 1200);
     });
     </script>
 </body>
