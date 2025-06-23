@@ -800,25 +800,34 @@
             console.log('用戶:', user ? user.email : '未登入');
             
             if (user) {
-                window.currentUser = user;
-
-                // 一定要await，等待新帳號資料都ready
-                await loadUserData(user.uid);
-                await checkDailyReset(user.uid);
-
-                // 這時 postMessage 通知 chatFrame popup（或關閉）
-                try {
-                    const chatFrame = document.getElementById("chatFrame");
-                    if (chatFrame && chatFrame.contentWindow) {
-                        chatFrame.contentWindow.postMessage({ type: "clearUsageWarning" }, "*");
-                        chatFrame.contentWindow.postMessage({ type: "checkUsageWarning" }, "*");
-                    }
-                } catch(e) {}
-
-                // 顯示主要內容
-                showMainContent();
+                // 檢查是否是帳號切換
+                if (window.currentUser && window.currentUser.uid !== user.uid) {
+                    console.log('偵測到帳號切換，清除舊資料');
+                    // 清除舊的用戶資料
+                    window.userData = null;
+                    
+                    // 更新顯示
+                    updateUsageDisplay();
+                }
                 
-                console.log('用戶載入完成:', window.userData);
+                window.currentUser = user;
+                console.log('設定當前用戶:', user.email);
+                
+                try {
+                    // 獲取用戶資料
+                    await loadUserData(user.uid);
+                    
+                    // 檢查並重置每日次數
+                    await checkDailyReset(user.uid);
+                    
+                    // 顯示主要內容
+                    showMainContent();
+                    
+                    console.log('用戶載入完成:', window.userData);
+                } catch (error) {
+                    console.error('載入用戶資料時發生錯誤:', error);
+                    showMainContent();
+                }
             } else {
                 console.log('用戶登出，清除資料');
                 window.currentUser = null;
