@@ -811,6 +811,7 @@
           await sendEmailVerification(result.user);
           authMsg.textContent = '';
           registerForm.style.display = 'none';
+          // 顯示獨立的驗證信 pop
           document.getElementById('verifyNotice').style.display = 'block';
         } catch (err) {
           authMsg.textContent = err.message;
@@ -832,7 +833,7 @@
           const result = await signInWithEmailAndPassword(auth, email, password);
           if (!result.user.emailVerified) {
             authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
-            resendVerifyBtn.style.display = 'inline-block';
+            // 不顯示重發驗證信按鈕
             logoutBtn.style.display = 'inline-block';
             userInfo.textContent = '';
             return;
@@ -862,23 +863,17 @@
       logoutBtn.onclick = async () => {
         await signOut(auth);
       };
-      // 重發驗證信
-      resendVerifyBtn.onclick = async () => {
-        if (auth.currentUser) {
-          await sendEmailVerification(auth.currentUser);
-          authMsg.textContent = '驗證信已重新寄出，請至信箱查收。';
-        }
-      };
-
+      // ===== 移除重發驗證信功能 =====
       // 狀態監聽
       onAuthStateChanged(auth, (user) => {
+        // 不顯示重發驗證信按鈕
         resendVerifyBtn.style.display = 'none';
         if (user) {
           if (!user.emailVerified) {
             logoutBtn.style.display = 'inline-block';
             userInfo.textContent = '';
             authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
-            resendVerifyBtn.style.display = 'inline-block';
+            // 不顯示重發驗證信按鈕
             showForm('login');
           } else {
             logoutBtn.style.display = 'inline-block';
