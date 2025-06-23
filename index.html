@@ -782,6 +782,13 @@
       const showForgot = document.getElementById('showForgot');
       const backToLogin = document.getElementById('backToLogin');
 
+      // 修正登出按鈕脫離表單定位，避免覆蓋登入按鈕
+      document.getElementById('authSection').style.position = 'relative';
+      logoutBtn.style.position = 'fixed';
+      logoutBtn.style.top = '10px';
+      logoutBtn.style.left = '10px';
+      logoutBtn.style.zIndex = '10020';
+
       // UI 切換
       function showForm(form) {
         loginForm.style.display = form === 'login' ? 'block' : 'none';
