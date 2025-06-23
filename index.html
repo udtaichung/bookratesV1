@@ -293,7 +293,7 @@
             <!-- 註冊後顯示信箱驗證提示與確認按鈕 -->
             <div id="verifyNotice" style="display:none;margin-bottom:10px;text-align:center;">
                 <div style="color:#16a085;font-size:15px;margin-bottom:10px;">註冊成功，驗證信已寄出，請至信箱點擊驗證連結。<br><span style='color:#e67e22;font-size:13px;'>※ 若未收到信，請檢查垃圾郵件匣。</span></div>
-                <button id="verifyCheckBtn" class="tutorial-btn tutorial-btn-primary" style="width:100%;">我已完成信箱驗證，前往登入</button>
+                <button id="verifyCheckBtn" class="tutorial-btn tutorial-btn-primary" style="width:100%;">我已完成信箱驗證</button>
             </div>
             <!-- 忘記密碼表單 -->
             <form id="forgotForm" style="display:none;margin-bottom:10px;">
@@ -363,15 +363,32 @@
                     <button class="tutorial-btn tutorial-btn-primary" onclick="nextStep()" id="nextBtn">
                         下一步 →
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下載按鈕區塊（如有） -->
+    <!-- ...原有下載功能區塊保留... -->
+
+    <script>
+        // 教學步驟陣列（移到 JS 內部）
+        const tutorialSteps = [
+            {
+                title: "說明文件",
+                description: "點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。",
+                target: "header",
+                selector: ".doc-toggle",
+                position: "right"
             },
             {
                 title: "刷新聊天記錄",
                 description: "點擊此按鈕可以清空當前對話，開始新的對話。這是 Flowise 內建的功能。",
-                target: "header", // 使用 header 作為基準
-                selector: ".chain-selector", // 基於 LLM 選擇器
-                position: "relative", // 特殊標記：相對定位
-                offsetX: 50, // 右偏移50px
-                offsetY: 50  // 下偏移50px
+                target: "header",
+                selector: ".chain-selector",
+                position: "relative",
+                offsetX: 50,
+                offsetY: 50
             },
             {
                 title: "下載儲存",
@@ -802,6 +819,7 @@
       // 註冊後「我已完成信箱驗證」按鈕
       document.getElementById('verifyCheckBtn').onclick = function() {
         document.getElementById('verifyNotice').style.display = 'none';
+        // 只顯示登入表單，不自動填入任何資料
         showForm('login');
         authMsg.textContent = '請登入，若尚未驗證信箱請先完成信箱驗證。';
       };
