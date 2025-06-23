@@ -1233,10 +1233,12 @@
                 if (msg) userMsgs.push(msg);
             }
         });
-        // 新增訊息
+        // 僅記錄新用戶訊息
         if (userMsgs.length > lastUserMsgCount) {
-            const newMsg = userMsgs[userMsgs.length - 1];
-            handleUserQuestion(newMsg);
+            // 只處理新增加的用戶訊息（支援一次多發問的情境）
+            for (let i = lastUserMsgCount; i < userMsgs.length; i++) {
+                handleUserQuestion(userMsgs[i]);
+            }
         }
         lastUserMsgCount = userMsgs.length;
         lastUserMsgs = userMsgs;
