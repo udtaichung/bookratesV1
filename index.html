@@ -791,16 +791,13 @@
 
       // UI 切換
       function showForm(form) {
-        const authSection = document.getElementById('authSection');
-        if (form === 'none') {
-          authSection.style.display = 'none';
-        } else {
-          authSection.style.display = 'block';
-          loginForm.style.display = form === 'login' ? 'block' : 'none';
-          registerForm.style.display = form === 'register' ? 'block' : 'none';
-          forgotForm.style.display = form === 'forgot' ? 'block' : 'none';
-          authMsg.textContent = '';
-        }
+        // 只控制表單與驗證提示，不隱藏 authSection
+        loginForm.style.display = form === 'login' ? 'block' : 'none';
+        registerForm.style.display = form === 'register' ? 'block' : 'none';
+        forgotForm.style.display = form === 'forgot' ? 'block' : 'none';
+        const verifyNotice = document.getElementById('verifyNotice');
+        if (verifyNotice) verifyNotice.style.display = 'none';
+        authMsg.textContent = '';
       }
       showForm('login');
       showRegister.onclick = e => { e.preventDefault(); showForm('register'); };
