@@ -1229,30 +1229,13 @@
           setTimeout(async () => {
             if (input.value.trim() === '') {
               try {
-                const qRef = collection(db, "users", user.uid, "questions");
-                await addDoc(qRef, {
-                  content: question,
-                  timestamp: Date.now()
-                });
-                // 扣除 credits
+                // 只扣除 credits，不寫入發問紀錄
                 const userRef = doc(db, "users", user.uid);
                 await updateDoc(userRef, {
                   credits: increment(-1)
                 });
-                // 只保留30條
-                const q = query(qRef, orderBy("timestamp", "desc"));
-                const snap = await getDocs(q);
-                if (snap.size > 30) {
-                  let count = 0;
-                  snap.forEach(async docSnap => {
-                    count++;
-                    if (count > 30) {
-                      await deleteDoc(doc(db, "users", user.uid, "questions", docSnap.id));
-                    }
-                  });
-                }
               } catch (err) {
-                console.error("Firestore 提問寫入失敗", err);
+                console.error("Firestore 扣除次數失敗", err);
               }
             }
           }, 300);
