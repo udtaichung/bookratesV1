@@ -614,20 +614,15 @@
                         currentAdmin = userCredential.user;
                         showAdminPanel();
                         await loadAllData();
-                        // 不顯示任何登入訊息
                         return;
                     } else {
-                        // 無資料，清空欄位
-                        document.getElementById('adminEmail').value = '';
-                        document.getElementById('adminPassword').value = '';
-                        // 不顯示任何訊息
+                        // 無資料，強制登出
+                        await signOut(auth);
                         return;
                     }
                 } catch (firestoreError) {
-                    // Firestore 權限錯誤，清空欄位
-                    document.getElementById('adminEmail').value = '';
-                    document.getElementById('adminPassword').value = '';
-                    // 不顯示任何訊息
+                    // Firestore 權限錯誤，強制登出
+                    await signOut(auth);
                     return;
                 }
             } catch (error) {
