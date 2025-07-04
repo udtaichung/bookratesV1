@@ -600,13 +600,38 @@
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
-
             setAuthLoading(true);
+            // 按鈕 hold 住 2 秒
+            await new Promise(resolve => setTimeout(resolve, 2000));
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('管理員登入成功:', userCredential.user);
+                // 嘗試讀取 Firestore users collection
+                try {
+                    const usersCollection = collection(db, 'users');
+                    const usersSnapshot = await getDocs(usersCollection);
+                    if (!usersSnapshot.empty) {
+                        // 有資料，切換到管理員頁面
+                        currentAdmin = userCredential.user;
+                        showAdminPanel();
+                        await loadAllData();
+                        // 不顯示任何登入訊息
+                        return;
+                    } else {
+                        // 無資料，清空欄位
+                        document.getElementById('adminEmail').value = '';
+                        document.getElementById('adminPassword').value = '';
+                        // 不顯示任何訊息
+                        return;
+                    }
+                } catch (firestoreError) {
+                    // Firestore 權限錯誤，清空欄位
+                    document.getElementById('adminEmail').value = '';
+                    document.getElementById('adminPassword').value = '';
+                    // 不顯示任何訊息
+                    return;
+                }
             } catch (error) {
-                console.error('登入錯誤:', error);
+                // 登入錯誤才顯示訊息
                 showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
             } finally {
                 setAuthLoading(false);
@@ -639,30 +664,6 @@
             document.getElementById('adminPanel').classList.add('hidden');
         }
 
-        // 灰色遮罩卡片
-        const overlay = document.createElement('div');
-        overlay.id = 'noPermissionOverlay';
-        overlay.style.cssText = `
-          position: fixed;
-          top: 0; left: 0; width: 100vw; height: 100vh;
-          background: rgba(128,128,128,0.8);
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          color: #fff;
-          font-family: 'Microsoft JhengHei', Arial, sans-serif;
-          letter-spacing: 2px;
-          text-align: center;
-          flex-direction: column;
-          transition: opacity 0.3s;
-          opacity: 1;
-        `;
-        overlay.innerHTML = `<div>⚠️ 無權限存取 Firestore 資料<br>請聯絡管理員</div>`;
-        overlay.style.display = 'none';
-        document.body.appendChild(overlay);
-
         // 載入所有資料
         async function loadAllData() {
             try {
@@ -682,14 +683,10 @@
                 renderUsersTable();
                 showUsersLoading(false);
                 showPanelMessage('資料載入完成', 'success');
-                // 有資料，移除遮罩
-                document.getElementById('noPermissionOverlay').style.display = 'none';
             } catch (error) {
                 console.error('載入資料錯誤:', error);
                 showPanelMessage('載入資料時發生錯誤', 'error');
                 showUsersLoading(false);
-                // Firestore 權限錯誤時顯示遮罩
-                document.getElementById('noPermissionOverlay').style.display = 'flex';
             }
         }
 
