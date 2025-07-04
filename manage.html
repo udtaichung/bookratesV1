@@ -748,9 +748,9 @@
             }
             editingUserId = userId;
             document.getElementById('editUserEmail').value = user.email || '';
-            document.getElementById('editUserLevel').value = user.level || 5;
+            document.getElementById('editUserLevel').value = (typeof user.level === 'number') ? user.level : 5;
             // 依等級自動帶入 dailyQuestions
-            const level = user.level || 5;
+            const level = (typeof user.level === 'number') ? user.level : 5;
             const rules = getCurrentLevelRules();
             const rule = rules.find(r => r.level == level);
             document.getElementById('editUserDailyQuestions').value = rule ? rule.daily : 10;
