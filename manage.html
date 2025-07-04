@@ -745,7 +745,11 @@
             editingUserId = userId;
             document.getElementById('editUserEmail').value = user.email || '';
             document.getElementById('editUserLevel').value = user.level || 5;
-            document.getElementById('editUserDailyQuestions').value = user.dailyQuestions || 10;
+            // 依等級自動帶入 dailyQuestions
+            const level = user.level || 5;
+            const rules = getCurrentLevelRules();
+            const rule = rules.find(r => r.level == level);
+            document.getElementById('editUserDailyQuestions').value = rule ? rule.daily : 10;
             document.getElementById('editUserQuestionsLeft').value = user.questionsLeft || 0;
             document.getElementById('editUserExtraCredits').value = user.extraCredits || 0;
             const modal = document.getElementById('editUserModal');
@@ -756,6 +760,29 @@
                 console.error('找不到編輯彈窗元素');
             }
         };
+
+        // 等級變動時自動更新 dailyQuestions 欄位
+        const editUserLevelSelect = document.getElementById('editUserLevel');
+        if (editUserLevelSelect) {
+            editUserLevelSelect.addEventListener('change', function() {
+                const level = parseInt(this.value);
+                const rules = getCurrentLevelRules();
+                const rule = rules.find(r => r.level == level);
+                document.getElementById('editUserDailyQuestions').value = rule ? rule.daily : 10;
+            });
+        }
+
+        // 取得目前等級規則
+        function getCurrentLevelRules() {
+            const rows = [];
+            document.querySelectorAll('#levelRulesTableBody tr').forEach(tr => {
+                const level = parseInt(tr.children[0].textContent);
+                const daily = parseInt(tr.querySelector('.level-daily').value);
+                const max = parseInt(tr.querySelector('.level-max').value);
+                rows.push({ level, daily, max });
+            });
+            return rows.length ? rows : defaultLevelRules;
+        }
 
         // 儲存用戶資料
         window.saveUserData = async function() {
@@ -1380,6 +1407,24 @@
             try {
                 await setDoc(levelRulesDocRef, { rules: rows });
                 showPanelMessage('等級規則已儲存', 'success');
+                // 新增：批次更新所有用戶 dailyQuestions 與 questionsLeft
+                const usersCollection = collection(db, 'users');
+                const usersSnapshot = await getDocs(usersCollection);
+                const batch = writeBatch(db);
+                usersSnapshot.forEach((docSnap) => {
+                    const user = docSnap.data();
+                    const userLevel = user.level || 5;
+                    const rule = rows.find(r => r.level == userLevel);
+                    if (rule) {
+                        batch.update(doc(db, 'users', docSnap.id), {
+                            dailyQuestions: rule.daily,
+                            questionsLeft: rule.daily
+                        });
+                    }
+                });
+                await batch.commit();
+                await loadAllData();
+                showPanelMessage('所有用戶已依新規則更新', 'success');
             } catch (err) {
                 showPanelMessage('儲存等級規則失敗', 'error');
             }
