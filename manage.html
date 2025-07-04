@@ -582,9 +582,6 @@
         let allUsers = [];
         let editingUserId = null;
 
-        // 管理員電子郵件
-        const ADMIN_EMAIL = 'ud.taichung.chatgpt@gmail.com';
-
         // 預設等級規則
         const defaultLevelRules = [
             { level: 0, daily: 0, max: 0 },
@@ -604,11 +601,6 @@
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
 
-            if (email !== ADMIN_EMAIL) {
-                showAuthMessage('只有系統管理員可以登入此後台', 'error');
-                return;
-            }
-
             setAuthLoading(true);
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -623,7 +615,7 @@
 
         // 監聽認證狀態
         onAuthStateChanged(auth, async (user) => {
-            if (user && user.email === ADMIN_EMAIL) {
+            if (user) {
                 currentAdmin = user;
                 showAdminPanel();
                 await loadAllData();
