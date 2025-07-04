@@ -595,13 +595,24 @@
         // Firestore 等級規則文件
         const levelRulesDocRef = doc(db, 'config', 'levelRules');
 
+        // 監聽認證狀態
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentAdmin = user;
+                // 不自動切換到管理頁，等登入流程確認有 Firestore 資料時才切換
+            } else {
+                currentAdmin = null;
+                showAuthScreen();
+            }
+        });
+
         // 管理員登入表單
         document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
             setAuthLoading(true);
-            // 按鈕 hold 住 2 秒
+            // 按鈕 hold 住 2 秒（可改 3 秒）
             await new Promise(resolve => setTimeout(resolve, 2000));
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -630,18 +641,6 @@
                 showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
             } finally {
                 setAuthLoading(false);
-            }
-        });
-
-        // 監聽認證狀態
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentAdmin = user;
-                showAdminPanel();
-                await loadAllData();
-            } else {
-                currentAdmin = null;
-                showAuthScreen();
             }
         });
 
