@@ -639,6 +639,30 @@
             document.getElementById('adminPanel').classList.add('hidden');
         }
 
+        // 灰色遮罩卡片
+        const overlay = document.createElement('div');
+        overlay.id = 'noPermissionOverlay';
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0; left: 0; width: 100vw; height: 100vh;
+          background: rgba(128,128,128,0.8);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2rem;
+          color: #fff;
+          font-family: 'Microsoft JhengHei', Arial, sans-serif;
+          letter-spacing: 2px;
+          text-align: center;
+          flex-direction: column;
+          transition: opacity 0.3s;
+          opacity: 1;
+        `;
+        overlay.innerHTML = `<div>⚠️ 無權限存取 Firestore 資料<br>請聯絡管理員</div>`;
+        overlay.style.display = 'none';
+        document.body.appendChild(overlay);
+
         // 載入所有資料
         async function loadAllData() {
             try {
@@ -658,10 +682,14 @@
                 renderUsersTable();
                 showUsersLoading(false);
                 showPanelMessage('資料載入完成', 'success');
+                // 有資料，移除遮罩
+                document.getElementById('noPermissionOverlay').style.display = 'none';
             } catch (error) {
                 console.error('載入資料錯誤:', error);
                 showPanelMessage('載入資料時發生錯誤', 'error');
                 showUsersLoading(false);
+                // Firestore 權限錯誤時顯示遮罩
+                document.getElementById('noPermissionOverlay').style.display = 'flex';
             }
         }
 
