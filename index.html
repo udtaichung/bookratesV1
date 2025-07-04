@@ -918,18 +918,27 @@
         const password = document.getElementById('registerPassword').value;
         const password2 = document.getElementById('registerPassword2').value;
         if (password !== password2) {
-          authMsg.textContent = '兩次輸入的密碼不一致，請重新確認。';
+          authMsg.textContent = '兩次密碼不一致';
           return;
         }
         try {
-          const result = await createUserWithEmailAndPassword(auth, email, password);
-          await sendEmailVerification(result.user);
-          authMsg.textContent = '';
-          registerForm.style.display = 'none';
-          // 顯示獨立的驗證信 pop
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          // 新增：註冊成功後寫入 Firestore 使用者資料，含 level/dailyQuestions
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            level: 1, // 預設等級
+            dailyQuestions: 5, // 預設每日回復次數
+            questionsLeft: 5, // 當日剩餘次數
+            extraCredits: 0,
+            createdAt: new Date(),
+            lastReset: '',
+            totalQuestions: 0
+          }, { merge: true });
+          await sendEmailVerification(user);
           document.getElementById('verifyNotice').style.display = 'block';
         } catch (err) {
-          authMsg.textContent = err.message;
+          authMsg.textContent = '註冊失敗：' + (err.message || err.code);
         }
       };
       
