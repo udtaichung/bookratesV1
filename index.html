@@ -441,6 +441,7 @@
                 <p><strong>剩餘問題次數：<span id="remainingCredits">0</span></strong></p>
                 <p>每日問題次數：<span id="dailyLimit">5</span></p>
                 <p>額外點數：<span id="extraCredits">0</span></p>
+                <p>最高可累積：<span id="maxQuestionsDisplay">-</span></p>
             </div>
             <p>您今日的問題次數已用完。<br>請明天再來使用，或聯絡管理員增加額外點數。</p>
             <div style="display: flex; gap: 10px; justify-content: center;">
@@ -924,18 +925,20 @@
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-          // 新增：註冊成功後寫入 Firestore 使用者資料，含 level/dailyQuestions
+          await sendEmailVerification(user);
+          // 新增：根據等級1寫入 dailyQuestions 與 maxQuestions
+          const rules = await getLevelRules();
+          const rule = rules.find(r => r.level === 1) || { daily: 5, max: 8 };
           await setDoc(doc(db, 'users', user.uid), {
             email: user.email,
-            level: 1, // 預設等級
-            dailyQuestions: 5, // 預設每日回復次數
-            questionsLeft: 5, // 當日剩餘次數
+            level: 1,
+            dailyQuestions: rule.daily,
+            maxQuestions: rule.max,
+            questionsLeft: rule.daily,
             extraCredits: 0,
             createdAt: new Date(),
             lastReset: '',
-            totalQuestions: 0
           }, { merge: true });
-          await sendEmailVerification(user);
           document.getElementById('verifyNotice').style.display = 'block';
         } catch (err) {
           authMsg.textContent = '註冊失敗：' + (err.message || err.code);
@@ -1001,7 +1004,6 @@
         } catch (e) {}
         // fallback 預設
         levelRulesCache = [
-          { level: 0, daily: 0, max: 0 },
           { level: 1, daily: 5, max: 8 },
           { level: 2, daily: 10, max: 20 },
           { level: 3, daily: 20, max: 50 },
@@ -1017,15 +1019,19 @@
         const lastReset = userData.lastReset || '';
         const userLevel = userData.level || 1;
         const rules = await getLevelRules();
-        const rule = rules.find(r => r.level === userLevel) || rules[1];
+        const rule = rules.find(r => r.level === userLevel) || rules[0];
         if (lastReset === today) return false; // 已補充過
 
+        // 取得 maxQuestions，若無則用 rule.max
+        const maxQuestions = userData.maxQuestions || rule.max;
         let newQuestionsLeft = (userData.questionsLeft || 0) + (rule.daily || 0);
-        if (newQuestionsLeft > rule.max) newQuestionsLeft = rule.max;
+        if (newQuestionsLeft > maxQuestions) newQuestionsLeft = maxQuestions;
 
         await setDoc(userDocRef, {
+          lastReset: today,
           questionsLeft: newQuestionsLeft,
-          lastReset: today
+          dailyQuestions: rule.daily,
+          maxQuestions: rule.max
         }, { merge: true });
         return true;
       }
@@ -1081,15 +1087,17 @@
         const questionsLeft = userData.questionsLeft || 0;
         const extraCredits = userData.extraCredits || 0;
         const totalCredits = questionsLeft + extraCredits;
-        
+        const maxQuestions = userData.maxQuestions || '';
+
         creditsDisplay.textContent = `(${totalCredits})`;
-        
-        // 更新點數不足提示框中的資訊
         document.getElementById('remainingCredits').textContent = totalCredits;
         document.getElementById('dailyLimit').textContent = userData.dailyQuestions || 5;
         document.getElementById('extraCredits').textContent = extraCredits;
-        
-        console.log('💰 點數更新:', { questionsLeft, extraCredits, totalCredits });
+        // 顯示最高可累積次數
+        if (document.getElementById('maxQuestionsDisplay')) {
+          document.getElementById('maxQuestionsDisplay').textContent = maxQuestions;
+        }
+        console.log('💰 點數更新:', { questionsLeft, extraCredits, totalCredits, maxQuestions });
       }
 
       // 檢查點數狀態
