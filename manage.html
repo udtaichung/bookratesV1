@@ -1437,7 +1437,7 @@
                 const batch = writeBatch(db);
                 usersSnapshot.forEach((docSnap) => {
                     const user = docSnap.data();
-                    const userLevel = user.level || 5;
+                    const userLevel = (typeof user.level === 'number') ? user.level : 5;
                     const rule = rows.find(r => r.level == userLevel);
                     if (rule) {
                         batch.update(doc(db, 'users', docSnap.id), {
@@ -1448,10 +1448,10 @@
                     }
                 });
                 await batch.commit();
-                await loadAllData();
-                showPanelMessage('所有用戶已依新規則更新', 'success');
-            } catch (err) {
-                showPanelMessage('儲存等級規則失敗', 'error');
+                console.log('✅ 所有用戶的等級規則已更新');
+            } catch (error) {
+                console.error('儲存等級規則錯誤:', error);
+                showPanelMessage('儲存等級規則時發生錯誤', 'error');
             }
         });
     </script>
