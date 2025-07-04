@@ -533,6 +533,10 @@
                     <label class="form-label">額外點數</label>
                     <input type="number" id="editUserExtraCredits" class="form-input" min="0" max="1000">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">最高可累積次數</label>
+                    <input type="number" id="editUserMaxQuestions" class="form-input" readonly>
+                </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
                     <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
                     <button class="btn btn-primary" onclick="saveUserData()">儲存</button>
@@ -752,6 +756,14 @@
             document.getElementById('editUserDailyQuestions').value = rule ? rule.daily : 10;
             document.getElementById('editUserQuestionsLeft').value = user.questionsLeft || 0;
             document.getElementById('editUserExtraCredits').value = user.extraCredits || 0;
+            // 新增 maxQuestions 欄位顯示
+            if (!document.getElementById('editUserMaxQuestions')) {
+                const maxDiv = document.createElement('div');
+                maxDiv.className = 'form-group';
+                maxDiv.innerHTML = `<label class="form-label">最高可累積次數</label><input type="number" id="editUserMaxQuestions" class="form-input" readonly>`;
+                document.getElementById('editUserForm').insertBefore(maxDiv, document.getElementById('editUserQuestionsLeft').parentNode);
+            }
+            document.getElementById('editUserMaxQuestions').value = rule ? rule.max : 20;
             const modal = document.getElementById('editUserModal');
             if (modal) {
                 modal.style.display = 'flex';
@@ -761,7 +773,7 @@
             }
         };
 
-        // 等級變動時自動更新 dailyQuestions 欄位
+        // 等級變動時自動更新 dailyQuestions 與 maxQuestions 欄位
         const editUserLevelSelect = document.getElementById('editUserLevel');
         if (editUserLevelSelect) {
             editUserLevelSelect.addEventListener('change', function() {
@@ -769,6 +781,9 @@
                 const rules = getCurrentLevelRules();
                 const rule = rules.find(r => r.level == level);
                 document.getElementById('editUserDailyQuestions').value = rule ? rule.daily : 10;
+                if (document.getElementById('editUserMaxQuestions')) {
+                    document.getElementById('editUserMaxQuestions').value = rule ? rule.max : 20;
+                }
             });
         }
 
@@ -794,6 +809,7 @@
             }
             const level = parseInt(document.getElementById('editUserLevel').value);
             const dailyQuestions = parseInt(document.getElementById('editUserDailyQuestions').value);
+            const maxQuestions = document.getElementById('editUserMaxQuestions') ? parseInt(document.getElementById('editUserMaxQuestions').value) : 20;
             const questionsLeft = parseInt(document.getElementById('editUserQuestionsLeft').value);
             const extraCredits = parseInt(document.getElementById('editUserExtraCredits').value);
             if (isNaN(level) || level < 1 || level > 10) {
@@ -802,6 +818,10 @@
             }
             if (isNaN(dailyQuestions) || dailyQuestions < 1 || dailyQuestions > 100) {
                 showPanelMessage('每日問題次數必須在 1-100 之間', 'error');
+                return;
+            }
+            if (isNaN(maxQuestions) || maxQuestions < 0 || maxQuestions > 100) {
+                showPanelMessage('最高可累積次數必須在 0-100 之間', 'error');
                 return;
             }
             if (isNaN(questionsLeft) || questionsLeft < 0 || questionsLeft > 100) {
@@ -817,6 +837,7 @@
                 await updateDoc(doc(db, 'users', editingUserId), {
                     level: level,
                     dailyQuestions: dailyQuestions,
+                    maxQuestions: maxQuestions,
                     questionsLeft: questionsLeft,
                     extraCredits: extraCredits
                 });
@@ -843,6 +864,9 @@
             document.getElementById('editUserDailyQuestions').value = '10';
             document.getElementById('editUserQuestionsLeft').value = '0';
             document.getElementById('editUserExtraCredits').value = '0';
+            if (document.getElementById('editUserMaxQuestions')) {
+                document.getElementById('editUserMaxQuestions').value = '20';
+            }
             console.log('✅ 編輯彈窗已關閉並清空');
         };
 
@@ -1407,7 +1431,7 @@
             try {
                 await setDoc(levelRulesDocRef, { rules: rows });
                 showPanelMessage('等級規則已儲存', 'success');
-                // 新增：批次更新所有用戶 dailyQuestions 與 questionsLeft
+                // 新增：批次更新所有用戶 dailyQuestions、maxQuestions 與 questionsLeft
                 const usersCollection = collection(db, 'users');
                 const usersSnapshot = await getDocs(usersCollection);
                 const batch = writeBatch(db);
@@ -1418,6 +1442,7 @@
                     if (rule) {
                         batch.update(doc(db, 'users', docSnap.id), {
                             dailyQuestions: rule.daily,
+                            maxQuestions: rule.max,
                             questionsLeft: rule.daily
                         });
                     }
