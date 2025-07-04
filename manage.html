@@ -693,7 +693,7 @@
             const totalUsers = allUsers.length;
             const today = new Date().toISOString().split('T')[0];
             const activeToday = allUsers.filter(user => user.lastReset === today).length;
-            const avgLevel = totalUsers > 0 ? (allUsers.reduce((sum, user) => sum + (user.level || 5), 0) / totalUsers).toFixed(1) : 0;
+            const avgLevel = totalUsers > 0 ? (allUsers.reduce((sum, user) => sum + (typeof user.level === 'number' ? user.level : 5), 0) / totalUsers).toFixed(1) : 0;
             const totalCredits = allUsers.reduce((sum, user) => sum + (user.extraCredits || 0), 0);
 
             document.getElementById('totalUsers').textContent = totalUsers;
@@ -716,7 +716,7 @@
                 
                 row.innerHTML = `
                     <td>${user.email}</td>
-                    <td>${user.level || 5}</td>
+                    <td>${typeof user.level === 'number' ? user.level : 5}</td>
                     <td>${user.questionsLeft || 0}</td>
                     <td>${user.extraCredits || 0}</td>
                     <td><strong>${totalQuestions}</strong></td>
@@ -1015,7 +1015,7 @@
             const headers = ['電子郵件', '等級', '每日問題次數', '剩餘次數', '額外點數', '最後重置', '註冊時間'];
             const rows = allUsers.map(user => [
                 user.email,
-                user.level || 5,
+                typeof user.level === 'number' ? user.level : 5,
                 user.dailyQuestions || 10,
                 user.questionsLeft || 0,
                 user.extraCredits || 0,
