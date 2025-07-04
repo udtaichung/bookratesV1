@@ -477,6 +477,26 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- 等級規則管理 -->
+        <div class="action-section">
+            <h3>🛠️ 等級規則管理</h3>
+            <form id="levelRulesForm">
+                <table class="users-table" style="margin-bottom:20px;">
+                    <thead>
+                        <tr>
+                            <th>等級</th>
+                            <th>每日補充</th>
+                            <th>最高上限</th>
+                        </tr>
+                    </thead>
+                    <tbody id="levelRulesTableBody">
+                        <!-- 由 JS 動態產生 -->
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary">儲存等級規則</button>
+            </form>
+        </div>
     </div>
 
     <!-- 編輯用戶彈窗 -->
@@ -542,7 +562,8 @@
             query, 
             where, 
             writeBatch,
-            serverTimestamp 
+            serverTimestamp,
+            setDoc, getDoc 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -565,6 +586,19 @@
 
         // 管理員電子郵件
         const ADMIN_EMAIL = 'ud.taichung.chatgpt@gmail.com';
+
+        // 預設等級規則
+        const defaultLevelRules = [
+            { level: 0, daily: 0, max: 0 },
+            { level: 1, daily: 5, max: 8 },
+            { level: 2, daily: 10, max: 20 },
+            { level: 3, daily: 20, max: 50 },
+            { level: 4, daily: 25, max: 100 },
+            { level: 5, daily: 100, max: 1000 }
+        ];
+
+        // Firestore 等級規則文件
+        const levelRulesDocRef = doc(db, 'config', 'levelRules');
 
         // 管理員登入表單
         document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
@@ -606,6 +640,7 @@
             document.getElementById('adminAuth').classList.add('hidden');
             document.getElementById('adminPanel').classList.remove('hidden');
             document.getElementById('adminEmailDisplay').textContent = currentAdmin.email;
+            loadLevelRules();
         }
 
         // 顯示登入界面
@@ -1291,6 +1326,53 @@
                 if (modal) {
                     closeUsageLogsModal();
                 }
+            }
+        });
+
+        // 載入等級規則
+        async function loadLevelRules() {
+            try {
+                const docSnap = await getDoc(levelRulesDocRef);
+                let rules = defaultLevelRules;
+                if (docSnap.exists()) {
+                    rules = docSnap.data().rules;
+                }
+                renderLevelRulesTable(rules);
+            } catch (e) {
+                renderLevelRulesTable(defaultLevelRules);
+            }
+        }
+
+        // 渲染等級規則表格
+        function renderLevelRulesTable(rules) {
+            const tbody = document.getElementById('levelRulesTableBody');
+            tbody.innerHTML = '';
+            rules.forEach(rule => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${rule.level}</td>
+                        <td><input type="number" min="0" max="1000" value="${rule.daily}" data-level="${rule.level}" class="level-daily" style="width:80px;"></td>
+                        <td><input type="number" min="0" max="10000" value="${rule.max}" data-level="${rule.level}" class="level-max" style="width:100px;"></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 儲存等級規則
+        document.getElementById('levelRulesForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const rows = [];
+            document.querySelectorAll('#levelRulesTableBody tr').forEach(tr => {
+                const level = parseInt(tr.children[0].textContent);
+                const daily = parseInt(tr.querySelector('.level-daily').value);
+                const max = parseInt(tr.querySelector('.level-max').value);
+                rows.push({ level, daily, max });
+            });
+            try {
+                await setDoc(levelRulesDocRef, { rules: rows });
+                showPanelMessage('等級規則已儲存', 'success');
+            } catch (err) {
+                showPanelMessage('儲存等級規則失敗', 'error');
             }
         });
     </script>
