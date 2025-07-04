@@ -1205,6 +1205,30 @@
             // 讀取現有 user 資料
             const snap = await getDoc(userDocRef);
             userData = snap.exists() ? snap.data() : null;
+            // === 新增：初始化 lastUserMsgCount，避免 reload 重複扣點 ===
+            const chatbot = document.querySelector('.custom-chatbot');
+            if (chatbot && chatbot.shadowRoot) {
+                const selectors = [
+                    '.border-transparent',
+                    '.flex.items-start',
+                    '.overflow-y-auto .flex'
+                ];
+                let messageContainers = [];
+                for (const selector of selectors) {
+                    messageContainers = chatbot.shadowRoot.querySelectorAll(selector);
+                    if (messageContainers && messageContainers.length > 0) break;
+                }
+                let userMsgs = [];
+                messageContainers.forEach((container, idx) => {
+                    if (idx % 2 !== 0) {
+                        const msg = container.textContent.trim();
+                        if (msg) userMsgs.push(msg);
+                    }
+                });
+                lastUserMsgCount = userMsgs.length;
+                lastUserMsgs = userMsgs;
+            }
+            // === End 新增 ===
             if (!intervalStarted) {
                 setInterval(checkUserMessage, 1500);
                 intervalStarted = true;
