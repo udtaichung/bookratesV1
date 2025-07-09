@@ -1013,19 +1013,37 @@
         return levelRulesCache;
       }
 
-      // 每日補充點數機制
+      // 每日補充點數機制 (使用本地時區)
       async function supplementCreditsIfNeeded(userDocRef, userData) {
-        const today = new Date().toISOString().slice(0, 10);
+        // 取得台灣時區的今日日期 (YYYY-MM-DD)
+        const now = new Date();
+        const offset = 8; // UTC+8 for Taiwan
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const today = new Date(utc + (3600000 * offset)).toISOString().slice(0, 10);
+        
         const lastReset = userData.lastReset || '';
+        console.log('🔁 檢查點數補充: lastReset=', lastReset, 'today=', today);
+        
         const userLevel = userData.level || 1;
         const rules = await getLevelRules();
         const rule = rules.find(r => r.level === userLevel) || rules[0];
-        if (lastReset === today) return false; // 已補充過
+        
+        if (lastReset === today) {
+          console.log('⏭️ 今日已補充過點數');
+          return false;
+        }
 
-        // 取得 maxQuestions，若無則用 rule.max
+        // 計算新點數 (不超過上限)
         const maxQuestions = userData.maxQuestions || rule.max;
-        let newQuestionsLeft = (userData.questionsLeft || 0) + (rule.daily || 0);
+        const currentQuestions = userData.questionsLeft || 0;
+        let newQuestionsLeft = currentQuestions + (rule.daily || 0);
         if (newQuestionsLeft > maxQuestions) newQuestionsLeft = maxQuestions;
+
+        console.log('🔄 補充點數:',
+          '原有點數:', currentQuestions,
+          '補充量:', rule.daily,
+          '新點數:', newQuestionsLeft,
+          '上限:', maxQuestions);
 
         await setDoc(userDocRef, {
           lastReset: today,
@@ -1033,6 +1051,8 @@
           dailyQuestions: rule.daily,
           maxQuestions: rule.max
         }, { merge: true });
+        
+        console.log('✅ 點數補充完成');
         return true;
       }
 
