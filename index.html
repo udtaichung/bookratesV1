@@ -1033,9 +1033,9 @@
           return false;
         }
 
-        // 計算新點數 (直接重置為每日補充量，但不超過上限)
+        // 計算新點數 (加上每日補充量，但不超過上限)
         const maxQuestions = userData.maxQuestions || rule.max;
-        let newQuestionsLeft = rule.daily || 0;
+        let newQuestionsLeft = (userData.questionsLeft || 0) + (rule.daily || 0);
         if (newQuestionsLeft > maxQuestions) newQuestionsLeft = maxQuestions;
 
         console.log('🔄 重置點數:',
