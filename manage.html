@@ -1214,7 +1214,8 @@
                 ">
                 `;
 
-                // 顯示記錄，最新的在前面，從上到下，並在每筆記錄間加上分隔線
+                // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線
+                logsHtml += '\n';
                 logs.slice().reverse().forEach((log, index) => {
                     logsHtml += `${log}\n`;
                     if (index < logs.length - 1) {
