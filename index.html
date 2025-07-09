@@ -1033,16 +1033,14 @@
           return false;
         }
 
-        // 計算新點數 (不超過上限)
+        // 計算新點數 (直接重置為每日補充量，但不超過上限)
         const maxQuestions = userData.maxQuestions || rule.max;
-        const currentQuestions = userData.questionsLeft || 0;
-        let newQuestionsLeft = currentQuestions + (rule.daily || 0);
+        let newQuestionsLeft = rule.daily || 0;
         if (newQuestionsLeft > maxQuestions) newQuestionsLeft = maxQuestions;
 
-        console.log('🔄 補充點數:',
-          '原有點數:', currentQuestions,
-          '補充量:', rule.daily,
-          '新點數:', newQuestionsLeft,
+        console.log('🔄 重置點數:',
+          '原有點數:', userData.questionsLeft || 0,
+          '重置為:', newQuestionsLeft,
           '上限:', maxQuestions);
 
         await setDoc(userDocRef, {
