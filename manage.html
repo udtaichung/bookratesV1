@@ -1214,10 +1214,22 @@
                 ">
                 `;
 
-                // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線
+                // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線，且日期與發問分兩欄對齊
                 logsHtml += '\n';
                 logs.slice().reverse().forEach((log, index) => {
-                    logsHtml += `${log}\n`;
+                    // 將日期與發問分開，並用空白補齊日期欄位寬度，達到對齊效果
+                    const parts = log.split(' ');
+                    let datePart = '';
+                    let questionPart = '';
+                    if (parts.length >= 2) {
+                        datePart = parts[0] + ' ' + parts[1];
+                        questionPart = parts.slice(2).join(' ');
+                    } else {
+                        questionPart = log;
+                    }
+                    // 固定日期欄位寬度為20字元，空白補齊
+                    const paddedDate = datePart.padEnd(20, ' ');
+                    logsHtml += `${paddedDate} ${questionPart}\n`;
                     if (index < logs.length - 1) {
                         logsHtml += '---\n';
                     }
