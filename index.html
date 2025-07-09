@@ -961,8 +961,24 @@
         try {
           const result = await signInWithEmailAndPassword(auth, email, password);
           if (!result.user.emailVerified) {
-            authMsg.textContent = '信箱尚未驗證，請先收信點擊驗證連結。';
+            authMsg.innerHTML = '信箱尚未驗證，請先收信點擊驗證連結。<br><a href="#" id="resendVerificationLink" style="color:#0984e3;cursor:pointer;">重新發送驗證信</a>';
             logoutBtn.style.display = 'inline-block';
+
+            // 新增重新發送驗證信事件監聽
+            setTimeout(() => {
+              const resendLink = document.getElementById('resendVerificationLink');
+              if (resendLink) {
+                resendLink.onclick = async (e) => {
+                  e.preventDefault();
+                  try {
+                    await sendEmailVerification(result.user);
+                    authMsg.textContent = '驗證信已重新發送，請至信箱查收。';
+                  } catch (error) {
+                    authMsg.textContent = '重新發送驗證信失敗：' + (error.message || error.code);
+                  }
+                };
+              }
+            }, 100);
             return;
           }
         } catch (err) {
