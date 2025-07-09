@@ -1217,33 +1217,33 @@
                 // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線，且日期與發問分兩欄對齊，使用 HTML 表格格式
                 logsHtml += '\n<table style="width: 100%; border-collapse: collapse; font-family: monospace; font-size: 21px;">\n';
                 logsHtml += '<thead><tr><th style="text-align:left; padding-right: 20px; border-bottom: 2px solid #e0e0e0;">日期</th><th style="text-align:left; border-bottom: 2px solid #e0e0e0;">發問內容</th></tr></thead>\n<tbody>\n';
-                logs.slice().reverse().forEach((log, index) => {
-                    const parts = log.split(' ');
-                    let datePart = '';
-                    let questionPart = '';
-                    if (parts.length >= 2) {
-                        datePart = parts[0] + ' ' + parts[1];
-                        questionPart = parts.slice(2).join(' ');
-                    } else {
-                        questionPart = log;
-                    }
-                    // 將日期拆成三行顯示：年、月日、時間
-                    let dateOnly = '';
-                    let timeOnly = '';
-                    const dateTimeMatch = datePart.match(/^(\d{4})(\d{2})(\d{2})\s*(\d{4})$/);
-                    if (dateTimeMatch) {
-                        // 將日期拆成四行顯示：年、月、日、時間
-                        dateOnly = `${dateTimeMatch[1]}<br>${dateTimeMatch[2]}<br>${dateTimeMatch[3]}<br>${dateTimeMatch[4]}`;
-                        timeOnly = '';
-                    } else {
-                        dateOnly = datePart;
-                    }
-                    // 將日期欄位字體改小一點，讓四行日期看起來更整齊
-                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size: 16px; line-height: 1.2;">${dateOnly}${timeOnly ? '<br>' + timeOnly : ''}</td><td>${questionPart}</td></tr>\n`;
-                    if (index < logs.length - 1) {
-                        logsHtml += `<tr><td colspan="2" style="border-bottom: 1px solid #ccc; padding: 5px 0;"></td></tr>\n`;
-                    }
-                });
+                    logs.slice().reverse().forEach((log, index) => {
+                        const parts = log.split(' ');
+                        let datePart = '';
+                        let questionPart = '';
+                        if (parts.length >= 2) {
+                            datePart = parts[0] + ' ' + parts[1];
+                            questionPart = parts.slice(2).join(' ');
+                        } else {
+                            questionPart = log;
+                        }
+                        // 將日期拆成三行顯示：年、月日、時間
+                        let dateOnly = '';
+                        let timeOnly = '';
+                        const dateTimeMatch = datePart.match(/^(\d{4})(\d{2})(\d{2})\s*(\d{4})$/);
+                        if (dateTimeMatch) {
+                            // 將日期拆成三行顯示：年、月日、時間
+                            dateOnly = `${dateTimeMatch[1]}<br>${dateTimeMatch[2]}${dateTimeMatch[3]}<br>${dateTimeMatch[4]}`;
+                            timeOnly = '';
+                        } else {
+                            dateOnly = datePart;
+                        }
+                        // 將日期欄位字體改小一點，讓三行日期看起來更整齊
+                        logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size: 16px; line-height: 1.2;">${dateOnly}${timeOnly ? '<br>' + timeOnly : ''}</td><td>${questionPart}</td></tr>\n`;
+                        if (index < logs.length - 1) {
+                            logsHtml += `<tr><td colspan="2" style="border-bottom: 1px solid #ccc; padding: 5px 0;"></td></tr>\n`;
+                        }
+                    });
                 logsHtml += '</tbody></table>\n';
 
                 logsHtml += '</pre>';
