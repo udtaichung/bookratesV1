@@ -1227,17 +1227,19 @@
                     } else {
                         questionPart = log;
                     }
-                    // 將日期與時間分行顯示，日期一行，時間一行
+                    // 將日期拆成三行顯示：年、月日、時間
                     let dateOnly = '';
                     let timeOnly = '';
-                    const dateTimeMatch = datePart.match(/^(\d{8})\s*(\d{4})$/);
+                    const dateTimeMatch = datePart.match(/^(\d{4})(\d{2})(\d{2})\s*(\d{4})$/);
                     if (dateTimeMatch) {
-                        dateOnly = dateTimeMatch[1];
-                        timeOnly = dateTimeMatch[2];
+                        // 將日期拆成四行顯示：年、月、日、時間
+                        dateOnly = `${dateTimeMatch[1]}<br>${dateTimeMatch[2]}<br>${dateTimeMatch[3]}<br>${dateTimeMatch[4]}`;
+                        timeOnly = '';
                     } else {
                         dateOnly = datePart;
                     }
-                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top;">${dateOnly}<br>${timeOnly}</td><td>${questionPart}</td></tr>\n`;
+                    // 將日期欄位字體改小一點，讓四行日期看起來更整齊
+                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size: 16px; line-height: 1.2;">${dateOnly}${timeOnly ? '<br>' + timeOnly : ''}</td><td>${questionPart}</td></tr>\n`;
                     if (index < logs.length - 1) {
                         logsHtml += `<tr><td colspan="2" style="border-bottom: 1px solid #ccc; padding: 5px 0;"></td></tr>\n`;
                     }
