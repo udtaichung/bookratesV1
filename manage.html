@@ -1214,10 +1214,10 @@
                 ">
                 `;
 
-                // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線，且日期與發問分兩欄對齊，使用制表符對齊
-                logsHtml += '\n';
+                // 顯示記錄，最新的在前面，從上到下，並在第一行加強制換行，且每筆記錄間加上分隔線，且日期與發問分兩欄對齊，使用 HTML 表格格式
+                logsHtml += '\n<table style="width: 100%; border-collapse: collapse; font-family: monospace; font-size: 21px;">\n';
+                logsHtml += '<thead><tr><th style="text-align:left; padding-right: 20px; border-bottom: 2px solid #e0e0e0;">日期</th><th style="text-align:left; border-bottom: 2px solid #e0e0e0;">發問內容</th></tr></thead>\n<tbody>\n';
                 logs.slice().reverse().forEach((log, index) => {
-                    // 將日期與發問分開
                     const parts = log.split(' ');
                     let datePart = '';
                     let questionPart = '';
@@ -1227,12 +1227,12 @@
                     } else {
                         questionPart = log;
                     }
-                    // 使用制表符分隔日期與發問，讓兩欄對齊
-                    logsHtml += `${datePart}\t${questionPart}\n`;
+                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top;">${datePart}</td><td>${questionPart}</td></tr>\n`;
                     if (index < logs.length - 1) {
-                        logsHtml += '---\n';
+                        logsHtml += `<tr><td colspan="2" style="border-bottom: 1px solid #ccc; padding: 5px 0;"></td></tr>\n`;
                     }
                 });
+                logsHtml += '</tbody></table>\n';
 
                 logsHtml += '</pre>';
             }
