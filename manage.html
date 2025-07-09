@@ -1227,7 +1227,17 @@
                     } else {
                         questionPart = log;
                     }
-                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top;">${datePart}</td><td>${questionPart}</td></tr>\n`;
+                    // 將日期與時間分行顯示，日期一行，時間一行
+                    let dateOnly = '';
+                    let timeOnly = '';
+                    const dateTimeMatch = datePart.match(/^(\d{8})\s*(\d{4})$/);
+                    if (dateTimeMatch) {
+                        dateOnly = dateTimeMatch[1];
+                        timeOnly = dateTimeMatch[2];
+                    } else {
+                        dateOnly = datePart;
+                    }
+                    logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top;">${dateOnly}<br>${timeOnly}</td><td>${questionPart}</td></tr>\n`;
                     if (index < logs.length - 1) {
                         logsHtml += `<tr><td colspan="2" style="border-bottom: 1px solid #ccc; padding: 5px 0;"></td></tr>\n`;
                     }
