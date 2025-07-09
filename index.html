@@ -1144,7 +1144,7 @@
       window.loadUserData = loadUserData;
 
       // 狀態監聽
-      onAuthStateChanged(auth, (user) => {
+      onAuthStateChanged(auth, async (user) => {
         // 清除舊的監聽器
         if (userDataListener) {
           userDataListener();
@@ -1166,6 +1166,8 @@
             
             // 載入用戶資料並設置監聽器
             setupUserDataListener();
+            // 新增：登入後立即載入用戶資料，觸發每日補充點數
+            await loadUserData();
           }
         } else {
           currentUser = null;
