@@ -1273,9 +1273,10 @@
         // 重新抓一次 userData
         const snap = await getDoc(userDocRef);
         userData = snap.exists() ? snap.data() : {};
-        // 檢查剩餘次數
+        // 檢查剩餘次數與額外點數
         let left = userData.questionsLeft ?? 5;
-        if (left <= 0) {
+        let extra = userData.extraCredits ?? 0;
+        if (left + extra <= 0) {
             // 只記錄，不阻止 UI
             return;
         }
@@ -1288,23 +1289,30 @@
         try {
             if (!snap.exists()) {
                 // 文件不存在，先建立，補齊所有欄位
+                // 優先扣除額外點數
+                let newExtra = extra > 0 ? extra - 1 : 0;
+                let newLeft = extra > 0 ? left : left - 1;
                 await setDoc(userDocRef, {
                     email: auth.currentUser?.email || "",
                     createdAt: serverTimestamp(),
                     isAdmin: false,
                     level: 1,
                     dailyQuestions: 5,
-                    extraCredits: 0,
+                    extraCredits: newExtra,
                     lastReset: new Date().toISOString().slice(0, 10),
-                    questionsLeft: left - 1,
+                    questionsLeft: newLeft,
                     totalQuestions: 1,
                     lastUsed: serverTimestamp(),
                     usageLogs: usageLogs.slice(-100)
                 });
                 console.log('[Firestore] user 文件不存在，已自動建立');
             } else {
+                // 優先扣除額外點數
+                let newExtra = extra > 0 ? extra - 1 : 0;
+                let newLeft = extra > 0 ? left : left - 1;
                 await updateDoc(userDocRef, {
-                    questionsLeft: left - 1,
+                    extraCredits: newExtra,
+                    questionsLeft: newLeft,
                     totalQuestions: (userData.totalQuestions || 0) + 1,
                     lastUsed: serverTimestamp(),
                     usageLogs: usageLogs.slice(-100)
