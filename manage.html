@@ -1403,6 +1403,7 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
                 rows.push({ level, daily, max });
             });
             try {
+                console.log('嘗試寫入等級規則到 Firestore...');
                 await setDoc(levelRulesDocRef, { rules: rows });
                 showPanelMessage('等級規則已儲存', 'success');
                 // 新增：批次更新所有用戶 dailyQuestions、maxQuestions 與 questionsLeft
@@ -1425,7 +1426,7 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
                 console.log('✅ 所有用戶的等級規則已更新');
             } catch (error) {
                 console.error('儲存等級規則錯誤:', error);
-                showPanelMessage('儲存等級規則時發生錯誤', 'error');
+                showPanelMessage('儲存等級規則時發生錯誤: ' + error.message, 'error');
             }
         });
     </script>
