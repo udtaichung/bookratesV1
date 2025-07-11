@@ -611,15 +611,28 @@
         });
 
         // 管理員登入表單
+        let failedLoginAttempts = 0; // 新增錯誤嘗試計數器
+
         document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
             setAuthLoading(true);
-            // 按鈕 hold 住 2 秒（可改 3 秒）
+
+            // 固定延遲2秒，確保預讀Firestore資料
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 錯誤嘗試延遲（2的failedLoginAttempts次方秒，最小2秒）
+            if (failedLoginAttempts > 0) {
+                const delaySeconds = Math.pow(2, failedLoginAttempts);
+                await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+            }
+
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                // 登入成功，重置錯誤計數
+                failedLoginAttempts = 0;
+
                 // 嘗試讀取 Firestore users collection
                 try {
                     const usersCollection = collection(db, 'users');
@@ -641,7 +654,8 @@
                     return;
                 }
             } catch (error) {
-                // 登入錯誤才顯示訊息
+                // 登入錯誤，錯誤計數加1
+                failedLoginAttempts++;
                 showAuthMessage(getFirebaseErrorMessage(error.code), 'error');
             } finally {
                 setAuthLoading(false);
