@@ -1415,11 +1415,10 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
                     const userLevel = (typeof user.level === 'number') ? user.level : 5;
                     const rule = rows.find(r => r.level == userLevel);
                     if (rule) {
-                        batch.update(doc(db, 'users', docSnap.id), {
-                            dailyQuestions: rule.daily,
-                            maxQuestions: rule.max,
-                            questionsLeft: rule.daily
-                        });
+                batch.update(doc(db, 'users', docSnap.id), {
+                    dailyQuestions: rule.daily,
+                    maxQuestions: rule.max
+                });
                     }
                 });
                 await batch.commit();
