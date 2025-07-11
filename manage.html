@@ -985,18 +985,20 @@
             try {
                 const today = new Date().toISOString().split('T')[0];
                 const batch = writeBatch(db);
-                
+
                 allUsers.forEach(user => {
                     const userRef = doc(db, 'users', user.id);
+                    // 保留較多的剩餘次數，避免被重置成較少
+                    const newQuestionsLeft = Math.max(user.questionsLeft || 0, user.dailyQuestions || 10);
                     batch.update(userRef, {
-                        questionsLeft: user.dailyQuestions || 10,
+                        questionsLeft: newQuestionsLeft,
                         lastReset: today
                     });
                 });
 
                 await batch.commit();
                 await loadAllData();
-                showPanelMessage('所有用戶的今日問題次數已重置', 'success');
+                showPanelMessage('所有用戶的今日問題次數已重置（保留較多剩餘次數）', 'success');
             } catch (error) {
                 console.error('重置所有問題次數錯誤:', error);
                 showPanelMessage('重置所有問題次數時發生錯誤', 'error');
