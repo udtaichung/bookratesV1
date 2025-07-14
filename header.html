@@ -266,47 +266,58 @@
             </div>
        
             <script>
-                // 依據使用者等級過濾模型選項
-                function filterModelsByUserLevel() {
-                    const container = document.querySelector('.chain-selector');
-                    const userLevel = parseInt(container.getAttribute('data-user-level')) || 1;
-                    const select = document.getElementById('chainSelector');
-                    const options = Array.from(select.options);
-                    options.forEach(option => {
-                        // 從option文字中找emoji數字標示，若無則視為最高等級可用
-                        const text = option.textContent;
-                        // 使用更精確的正則匹配完整emoji數字
-                        const match = text.match(/(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣)/);
-                        if (match) {
-                            // 取匹配的emoji數字，轉成數字
-                            let levelEmoji = match[1];
-                            // 將emoji數字轉成阿拉伯數字，簡單對應
-                            const emojiMap = {'1️⃣':1,'2️⃣':2,'3️⃣':3,'4️⃣':4,'5️⃣':5};
-                            let level = emojiMap[levelEmoji] || 5;
-                            if (level > userLevel) {
-                                option.style.display = 'none';
-                            } else {
-                                option.style.display = 'block';
-                            }
+            // 依據使用者等級過濾模型選項
+            let currentUserLevel = parseInt(document.querySelector('.chain-selector').getAttribute('data-user-level')) || 1;
+
+            function filterModelsByUserLevel() {
+                const select = document.getElementById('chainSelector');
+                const options = Array.from(select.options);
+                options.forEach(option => {
+                    // 從option文字中找emoji數字標示，若無則視為最高等級可用
+                    const text = option.textContent;
+                    // 使用更精確的正則匹配完整emoji數字
+                    const match = text.match(/(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣)/);
+                    if (match) {
+                        // 取匹配的emoji數字，轉成數字
+                        let levelEmoji = match[1];
+                        // 將emoji數字轉成阿拉伯數字，簡單對應
+                        const emojiMap = {'1️⃣':1,'2️⃣':2,'3️⃣':3,'4️⃣':4,'5️⃣':5};
+                        let level = emojiMap[levelEmoji] || 5;
+                        if (level > currentUserLevel) {
+                            option.style.display = 'none';
                         } else {
-                            // 沒有標示等級的選項，預設顯示
                             option.style.display = 'block';
                         }
-                    });
-                    // 若目前選擇的選項被隱藏，改選第一個可見選項
-                    if (select.selectedOptions.length === 0 || select.selectedOptions[0].style.display === 'none') {
-                        for (let opt of options) {
-                            if (opt.style.display === 'block') {
-                                opt.selected = true;
-                                break;
-                            }
+                    } else {
+                        // 沒有標示等級的選項，預設顯示
+                        option.style.display = 'block';
+                    }
+                });
+                // 若目前選擇的選項被隱藏，改選第一個可見選項
+                if (select.selectedOptions.length === 0 || select.selectedOptions[0].style.display === 'none') {
+                    for (let opt of options) {
+                        if (opt.style.display === 'block') {
+                            opt.selected = true;
+                            break;
                         }
                     }
                 }
-                // 頁面載入時執行過濾
-                window.addEventListener('load', function() {
+            }
+            // 頁面載入時執行過濾
+            window.addEventListener('load', function() {
+                filterModelsByUserLevel();
+            });
+
+            // 監聽父頁面傳來的使用者等級訊息
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'userLevelUpdate') {
+                    currentUserLevel = parseInt(event.data.userLevel) || 1;
+                    const container = document.querySelector('.chain-selector');
+                    container.setAttribute('data-user-level', currentUserLevel);
                     filterModelsByUserLevel();
-                });
+                    console.log('📥 header 收到使用者等級:', currentUserLevel);
+                }
+            });
             </script>
         </div>
     </div>
