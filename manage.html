@@ -454,10 +454,18 @@
         </div>
 
         <!-- 用戶列表 -->
-        <div class="users-section" style="display: flex; align-items: flex-start; gap: 20px;">
-            <div style="flex-grow: 1;">
-                <h3>👥 用戶管理</h3>
-                <div id="usersLoading" class="loading">
+        <div class="users-section" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <h3 style="flex: 1 1 auto; margin: 0;">👥 用戶管理</h3>
+            <div style="min-width: 200px; flex: 0 0 auto;">
+                <label for="sortUsersSelect" style="font-weight: bold; color: #1a365d; display: block; margin-bottom: 8px;">排序方式</label>
+                <select id="sortUsersSelect" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                    <option value="email">郵件位址 0-z</option>
+                    <option value="questionsLeft">剩餘次數排序，由少到多</option>
+                    <option value="lastUsed">最新發問時間，由新到舊</option>
+                </select>
+            </div>
+            <div style="width: 100%; margin-top: 15px;">
+                <div id="usersLoading" class="loading" style="margin-bottom: 10px;">
                     <div class="spinner"></div>
                     <p>載入用戶資料中...</p>
                 </div>
@@ -478,14 +486,6 @@
                     <tbody id="usersTableBody">
                     </tbody>
                 </table>
-            </div>
-            <div style="min-width: 200px;">
-                <label for="sortUsersSelect" style="font-weight: bold; color: #1a365d; display: block; margin-bottom: 8px;">排序方式</label>
-                <select id="sortUsersSelect" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
-                    <option value="email">郵件位址 0-z</option>
-                    <option value="questionsLeft">剩餘次數排序，由少到多</option>
-                    <option value="lastUsed">最新發問時間，由新到舊</option>
-                </select>
             </div>
         </div>
 
@@ -1486,9 +1486,9 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
     </script>
 
     <script>
-        // 監聽排序下拉選單變化，重新渲染用戶表格
-        document.getElementById('sortUsersSelect').addEventListener('change', () => {
-            renderUsersTable();
+        // 監聽排序下拉選單變化，重新載入資料並渲染用戶表格
+        document.getElementById('sortUsersSelect').addEventListener('change', async () => {
+            await loadAllData();
         });
     </script>
 </body>
