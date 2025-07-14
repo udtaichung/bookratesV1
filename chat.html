@@ -1303,7 +1303,7 @@
                     questionsLeft: newLeft,
                     totalQuestions: 1,
                     lastUsed: serverTimestamp(),
-                            usageLogs: usageLogs.slice(-10) // 只保留最新100筆使用紀錄，避免資料過大
+                            usageLogs: usageLogs.slice(-50) // 只保留最新100筆使用紀錄，避免資料過大
                         });
                         console.log('[Firestore] user 文件不存在，已自動建立');
                     } else {
@@ -1315,7 +1315,7 @@
                             questionsLeft: newLeft,
                             totalQuestions: (userData.totalQuestions || 0) + 1,
                             lastUsed: serverTimestamp(),
-                            usageLogs: usageLogs.slice(-10) // 只保留最新100筆使用紀錄，避免資料過大
+                            usageLogs: usageLogs.slice(-50) // 只保留最新100筆使用紀錄，避免資料過大
                         });
                         console.log('[Firestore] user 文件已更新');
                     }
