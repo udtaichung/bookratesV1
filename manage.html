@@ -1487,9 +1487,16 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
 
     <script>
         // 監聽排序下拉選單變化，重新載入資料並渲染用戶表格
-        document.getElementById('sortUsersSelect').addEventListener('change', async () => {
-            await loadAllData();
-        });
+        const sortSelect = document.getElementById('sortUsersSelect');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', async () => {
+                await loadAllData();
+            });
+            // 也監聽 'input' 事件，確保下拉欄位變更時觸發
+            sortSelect.addEventListener('input', async () => {
+                await loadAllData();
+            });
+        }
     </script>
 </body>
 </html>
