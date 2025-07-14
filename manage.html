@@ -686,31 +686,31 @@
             document.getElementById('adminPanel').classList.add('hidden');
         }
 
-        // 載入所有資料
-        async function loadAllData() {
-            try {
-                showUsersLoading(true);
-                const usersCollection = collection(db, 'users');
-                const usersSnapshot = await getDocs(usersCollection);
-                
-                allUsers = [];
-                usersSnapshot.forEach((doc) => {
-                    allUsers.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
+// 載入所有資料
+window.loadAllData = async function loadAllData() {
+    try {
+        showUsersLoading(true);
+        const usersCollection = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersCollection);
+        
+        allUsers = [];
+        usersSnapshot.forEach((doc) => {
+            allUsers.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
 
-                updateStatistics();
-                renderUsersTable();
-                showUsersLoading(false);
-                showPanelMessage('資料載入完成', 'success');
-            } catch (error) {
-                console.error('載入資料錯誤:', error);
-                showPanelMessage('載入資料時發生錯誤', 'error');
-                showUsersLoading(false);
-            }
-        }
+        updateStatistics();
+        renderUsersTable();
+        showUsersLoading(false);
+        showPanelMessage('資料載入完成', 'success');
+    } catch (error) {
+        console.error('載入資料錯誤:', error);
+        showPanelMessage('載入資料時發生錯誤', 'error');
+        showUsersLoading(false);
+    }
+}
 
         // 更新統計資訊
         function updateStatistics() {
@@ -1485,16 +1485,16 @@ logsHtml += `<tr><td style="padding-right: 20px; vertical-align: top; font-size:
         });
     </script>
 
-    <script>
+    <script type="module">
         // 監聽排序下拉選單變化，重新載入資料並渲染用戶表格
         const sortSelect = document.getElementById('sortUsersSelect');
         if (sortSelect) {
             sortSelect.addEventListener('change', async () => {
-                await loadAllData();
+                await window.loadAllData();
             });
             // 也監聽 'input' 事件，確保下拉欄位變更時觸發
             sortSelect.addEventListener('input', async () => {
-                await loadAllData();
+                await window.loadAllData();
             });
         }
     </script>
