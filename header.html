@@ -275,9 +275,10 @@
                     options.forEach(option => {
                         // 從option文字中找emoji數字標示，若無則視為最高等級可用
                         const text = option.textContent;
-                        const match = text.match(/([1-5️⃣])/);
+                        // 使用更精確的正則匹配完整emoji數字
+                        const match = text.match(/(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣)/);
                         if (match) {
-                            // 取第一個匹配的emoji數字，轉成數字
+                            // 取匹配的emoji數字，轉成數字
                             let levelEmoji = match[1];
                             // 將emoji數字轉成阿拉伯數字，簡單對應
                             const emojiMap = {'1️⃣':1,'2️⃣':2,'3️⃣':3,'4️⃣':4,'5️⃣':5};
