@@ -529,6 +529,78 @@
                 <tbody id="supportMessagesTableBody"></tbody>
             </table>
         </div>
+
+        <script type="module">
+            // import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+            // import { getFirestore, collection, getDocs, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+            // const firebaseConfig = {
+            //     apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
+            //     authDomain: "bookrates-e4157.firebaseapp.com",
+            //     projectId: "bookrates-e4157",
+            //     storageBucket: "bookrates-e4157.appspot.com",
+            //     messagingSenderId: "1063987091365",
+            //     appId: "1:1063987091365:web:a04f13eb7eb464e7d1fa4c"
+            // };
+
+            // const app = initializeApp(firebaseConfig);
+            // const db = getFirestore(app);
+
+            async function loadSupportMessages() {
+                const loadingDiv = document.getElementById('supportMessagesLoading');
+                const table = document.getElementById('supportMessagesTable');
+                const tbody = document.getElementById('supportMessagesTableBody');
+
+                loadingDiv.style.display = 'block';
+                table.style.display = 'none';
+                tbody.innerHTML = '';
+
+                try {
+                    const querySnapshot = await getDocs(collection(db, 'supportMessages'));
+                    if (querySnapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">目前沒有留言</td></tr>';
+                    } else {
+                        querySnapshot.forEach(docSnap => {
+                            const data = docSnap.data();
+                            const timestamp = data.timestamp ? data.timestamp.toDate().toLocaleString('zh-TW') : '-';
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${data.email || ''}</td>
+                                <td>${data.name || ''}</td>
+                                <td style="max-width: 400px; word-break: break-word;">${data.message || ''}</td>
+                                <td>${timestamp}</td>
+                                <td>
+                                    <button class="btn btn-danger" onclick="deleteSupportMessage('${docSnap.id}')">刪除</button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                    table.style.display = 'table';
+                } catch (error) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">載入留言失敗</td></tr>';
+                    console.error('載入留言錯誤:', error);
+                } finally {
+                    loadingDiv.style.display = 'none';
+                }
+            }
+
+            async function deleteSupportMessage(id) {
+                if (!confirm('確定要刪除此留言嗎？')) return;
+                try {
+                    await deleteDoc(doc(db, 'supportMessages', id));
+                    await loadSupportMessages();
+                } catch (error) {
+                    alert('刪除留言失敗，請稍後再試');
+                    console.error('刪除留言錯誤:', error);
+                }
+            }
+
+            // 頁面載入時自動載入留言
+            window.addEventListener('load', () => {
+                loadSupportMessages();
+            });
+        </script>
     </div>
 
     <!-- 編輯用戶彈窗 -->
