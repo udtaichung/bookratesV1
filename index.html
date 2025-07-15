@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=no" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=no">
     <title>建築技術規則與台中建管資訊</title>
     <style>
         body, html {
@@ -14,39 +14,47 @@
             background-position: center;
             background-attachment: fixed;
         }
+
         #headerFrame {
             width: 100%;
             height: 80px;
             border: none;
             background: transparent;
         }
+
         #chatFrame {
             width: 100%;
             height: calc(100vh - 80px);
             border: none;
             background: transparent;
         }
+
         .content {
             position: relative;
             z-index: 1;
         }
+
         /* ===== 教學引導系統樣式 ===== */
+        
         /* 教學遮罩層 */
         .tutorial-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-color: rgba(0, 0, 0, 0.4);
             z-index: 9999;
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
+
         /* 明亮高亮框 - 這是重點！ */
         .tutorial-spotlight {
             position: absolute;
             border: 4px solid #00ff88;
             border-radius: 12px;
-            box-shadow:
+            box-shadow: 
                 0 0 0 4px rgba(0, 255, 136, 0.3),
                 0 0 30px rgba(0, 255, 136, 0.8),
                 inset 0 0 0 2px rgba(255, 255, 255, 0.5);
@@ -55,20 +63,22 @@
             transition: all 0.3s ease;
             animation: spotlightPulse 2s infinite;
         }
+
         @keyframes spotlightPulse {
-            0%, 100% {
-                box-shadow:
+            0%, 100% { 
+                box-shadow: 
                     0 0 0 4px rgba(0, 255, 136, 0.3),
                     0 0 30px rgba(0, 255, 136, 0.8),
                     inset 0 0 0 2px rgba(255, 255, 255, 0.5);
             }
-            50% {
-                box-shadow:
+            50% { 
+                box-shadow: 
                     0 0 0 6px rgba(0, 255, 136, 0.5),
                     0 0 50px rgba(0, 255, 136, 1),
                     inset 0 0 0 3px rgba(255, 255, 255, 0.8);
             }
         }
+
         /* 教學提示框 */
         .tutorial-tooltip {
             position: absolute;
@@ -78,11 +88,12 @@
             padding: 25px;
             max-width: 350px;
             min-width: 280px;
-            box-shadow:
+            box-shadow: 
                 0 12px 35px rgba(0, 0, 0, 0.4),
                 0 0 20px rgba(0, 255, 136, 0.3);
             z-index: 10001;
         }
+
         .tutorial-tooltip h3 {
             margin: 0 0 12px 0;
             color: #1a365d;
@@ -91,6 +102,7 @@
             display: flex;
             align-items: center;
         }
+
         .tutorial-tooltip .step-icon {
             background: #00ff88;
             color: #1a365d;
@@ -104,12 +116,14 @@
             font-size: 14px;
             margin-right: 10px;
         }
+
         .tutorial-tooltip p {
             margin: 0 0 18px 0;
             color: #2d3748;
             font-size: 16px;
             line-height: 1.6;
         }
+
         /* 教學控制按鈕 */
         .tutorial-controls {
             display: flex;
@@ -117,6 +131,7 @@
             align-items: center;
             margin-top: 20px;
         }
+
         .tutorial-btn {
             padding: 10px 18px;
             border: none;
@@ -127,22 +142,27 @@
             transition: all 0.2s ease;
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
+
         .tutorial-btn-primary {
             background: linear-gradient(145deg, #00ff88, #00e676);
             color: #1a365d;
         }
+
         .tutorial-btn-secondary {
             background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
             color: #4a5568;
         }
+
         .tutorial-btn-skip {
             background: linear-gradient(145deg, #fed7d7, #feb2b2);
             color: #742a2a;
         }
+
         .tutorial-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
+
         /* 進度指示器 */
         .tutorial-progress {
             position: fixed;
@@ -158,6 +178,7 @@
             border: 2px solid #00ff88;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
+
         /* 不再顯示選項 */
         .tutorial-checkbox {
             display: flex;
@@ -166,10 +187,12 @@
             font-size: 14px;
             color: #4a5568;
         }
+
         .tutorial-checkbox input {
             margin-right: 10px;
             transform: scale(1.2);
         }
+
         /* 歡迎動畫 */
         .tutorial-welcome {
             position: fixed;
@@ -181,28 +204,32 @@
             border-radius: 20px;
             padding: 40px;
             text-align: center;
-            box-shadow:
+            box-shadow: 
                 0 20px 50px rgba(0, 0, 0, 0.4),
                 0 0 30px rgba(0, 255, 136, 0.4);
             z-index: 10001;
             max-width: 500px;
         }
+
         .tutorial-welcome h2 {
             color: #1a365d;
             font-size: 28px;
             margin-bottom: 20px;
             animation: welcomeGlow 2s infinite alternate;
         }
+
         @keyframes welcomeGlow {
             0% { text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
             100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
         }
+
         .tutorial-welcome p {
             color: #2d3748;
             font-size: 18px;
             line-height: 1.6;
             margin-bottom: 25px;
         }
+
         /* 響應式設計 */
         @media only screen and (max-width: 768px) {
             .tutorial-tooltip {
@@ -210,19 +237,23 @@
                 min-width: 250px;
                 padding: 20px;
             }
+            
             .tutorial-welcome {
                 max-width: 90%;
                 padding: 30px 20px;
             }
+            
             .tutorial-welcome h2 {
                 font-size: 24px;
             }
+            
             .tutorial-progress {
                 top: 15px;
                 right: 15px;
                 font-size: 14px;
                 padding: 8px 15px;
             }
+            
             /* 手機版提示框位置調整 */
             .tutorial-tooltip-mobile-adjust {
                 left: 20px !important;
@@ -233,6 +264,7 @@
                 transform: none !important;
             }
         }
+
         /* 登出鈕單獨顯示時，authSection極簡化 */
         .auth-section.logout-only {
             background: transparent !important;
@@ -241,44 +273,52 @@
             min-width: 0 !important;
             border-radius: 0 !important;
         }
+
         /* 點數不足時的遮罩層 */
         .no-credits-overlay {
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background: rgba(255, 0, 0, 0.15);
             z-index: 10006;
             pointer-events: auto;
             display: none;
         }
+
         /* 點數不足提示框 */
         .no-credits-notice {
             position: fixed;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
             background: linear-gradient(145deg, #fff5f5, #fed7d7);
             border: 3px solid #e53e3e;
             border-radius: 20px;
             padding: 30px;
             text-align: center;
-            box-shadow:
+            box-shadow: 
                 0 20px 50px rgba(0, 0, 0, 0.4),
                 0 0 30px rgba(229, 62, 62, 0.4);
             z-index: 10007;
             max-width: 400px;
             font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
+
         .no-credits-notice h3 {
             color: #742a2a;
             font-size: 24px;
             margin-bottom: 15px;
         }
+
         .no-credits-notice p {
             color: #742a2a;
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 20px;
         }
+
         .no-credits-notice .credits-info {
             background: rgba(255, 255, 255, 0.8);
             padding: 15px;
@@ -286,79 +326,16 @@
             margin-bottom: 20px;
             border: 2px solid #e53e3e;
         }
-        /* 真的收不到留言彈窗 */
-        #reallyNotReceivePopup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 11000;
-            width: 320px;
-            display: none;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-        }
-        #reallyNotReceivePopup h3 {
-            margin-top: 0;
-            color: #1a365d;
-            font-size: 20px;
-            margin-bottom: 10px;
-        }
-        #reallyNotReceivePopup textarea {
-            width: 100%;
-            height: 80px;
-            resize: none;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 14px;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-            box-sizing: border-box;
-        }
-        #reallyNotReceivePopup input[type="text"] {
-            width: 100%;
-            padding: 6px 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-            box-sizing: border-box;
-        }
-        #reallyNotReceivePopup .btn-group {
-            text-align: right;
-            margin-top: 10px;
-        }
-        #reallyNotReceivePopup button {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            margin-left: 8px;
-        }
-        #reallyNotReceivePopup button.submit-btn {
-            background: linear-gradient(145deg, #00ff88, #00e676);
-            color: #1a365d;
-        }
-        #reallyNotReceivePopup button.cancel-btn {
-            background: linear-gradient(145deg, #e2e8f0, #cbd5e0);
-            color: #4a5568;
-        }
     </style>
 </head>
 <body>
-    <!-- Firebase 登入系統 UI (只支援信箱/密碼 ) -->
+    <!-- Firebase 登入系統 UI (只支援信箱/密碼) -->
     <div id="authSection" class="auth-section" style="position:fixed;top:10px;left:10px;z-index:10010;background:rgba(255,255,255,0.95);padding:12px 18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);min-width:270px;">
         <div id="authForms">
             <!-- 登入表單 -->
             <form id="loginForm" style="display:none;margin-bottom:10px;">
-                <input id="loginEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;" />
-                <input id="loginPassword" type="password" placeholder="密碼" required style="width:90%;margin-bottom:6px;padding:6px;" />
+                <input id="loginEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="loginPassword" type="password" placeholder="密碼" required style="width:90%;margin-bottom:6px;padding:6px;">
                 <button type="submit" class="tutorial-btn tutorial-btn-primary" style="width:100%;margin-bottom:4px;">登入</button>
                 <div style="text-align:right;font-size:13px;">
                     <a href="#" id="showRegister" style="color:#00b894;">註冊</a> |
@@ -367,9 +344,9 @@
             </form>
             <!-- 註冊表單 -->
             <form id="registerForm" style="display:none;margin-bottom:10px;">
-                <input id="registerEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;" />
-                <input id="registerPassword" type="password" placeholder="密碼(至少6碼)" required style="width:90%;margin-bottom:6px;padding:6px;" />
-                <input id="registerPassword2" type="password" placeholder="再次輸入密碼" required style="width:90%;margin-bottom:6px;padding:6px;" />
+                <input id="registerEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="registerPassword" type="password" placeholder="密碼(至少6碼)" required style="width:90%;margin-bottom:6px;padding:6px;">
+                <input id="registerPassword2" type="password" placeholder="再次輸入密碼" required style="width:90%;margin-bottom:6px;padding:6px;">
                 <button type="submit" class="tutorial-btn tutorial-btn-primary" style="width:100%;margin-bottom:4px;">註冊</button>
                 <div style="text-align:right;font-size:13px;">
                     <a href="#" id="showLogin" style="color:#636e72;">已有帳號？登入</a>
@@ -377,15 +354,12 @@
             </form>
             <!-- 註冊後顯示信箱驗證提示與確認按鈕 -->
             <div id="verifyNotice" style="display:none;margin-bottom:10px;text-align:center;">
-                <div style="color:#16a085;font-size:15px;margin-bottom:10px;">
-                    註冊成功，驗證信已寄出，請至信箱點擊驗證連結。<br />
-                    <span style="color:#e67e22;font-size:13px;">※ 若未收到信，請檢查垃圾郵件匣。</span>
-                </div>
+                <div style="color:#16a085;font-size:15px;margin-bottom:10px;">註冊成功，驗證信已寄出，請至信箱點擊驗證連結。<br><span style='color:#e67e22;font-size:13px;'>※ 若未收到信，請檢查垃圾郵件匣。</span></div>
                 <button id="verifyCheckBtn" class="tutorial-btn tutorial-btn-primary" style="width:100%;">我已完成信箱驗證</button>
             </div>
             <!-- 忘記密碼表單 -->
             <form id="forgotForm" style="display:none;margin-bottom:10px;">
-                <input id="forgotEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;" />
+                <input id="forgotEmail" type="email" placeholder="Email" required style="width:90%;margin-bottom:6px;padding:6px;">
                 <button type="submit" class="tutorial-btn tutorial-btn-secondary" style="width:100%;margin-bottom:4px;">寄送重設密碼信</button>
                 <div style="text-align:right;font-size:13px;">
                     <a href="#" id="backToLogin" style="color:#636e72;">返回登入</a>
@@ -403,23 +377,481 @@
         <iframe id="chatFrame" src="chat.html"></iframe>
     </div>
 
-    <!-- 真的收不到留言彈窗 -->
-    <div id="reallyNotReceivePopup">
-        <h3>請留下email和貴姓大名，由管理員手動啟動</h3>
-        <input type="text" id="reallyNotReceiveEmail" placeholder="Email" readonly />
-        <input type="text" id="reallyNotReceiveName" placeholder="貴姓大名" maxlength="50" />
-        <textarea id="reallyNotReceiveMessage" placeholder="請簡單描述問題 (最多100字)" maxlength="100"></textarea>
-        <div class="btn-group">
-            <button class="cancel-btn" id="reallyNotReceiveCancelBtn">取消</button>
-            <button class="submit-btn" id="reallyNotReceiveSubmitBtn">送出留言</button>
+    <!-- 教學引導系統 -->
+    <div class="tutorial-overlay" id="tutorialOverlay">
+        <!-- 明亮高亮框 -->
+        <div class="tutorial-spotlight" id="tutorialSpotlight"></div>
+        
+        <!-- 進度指示器 -->
+        <div class="tutorial-progress" id="tutorialProgress">
+            步驟 1 / 4
         </div>
-        <div id="reallyNotReceiveStatus" style="margin-top:10px; font-size:14px;"></div>
+        
+        <!-- 歡迎畫面 -->
+        <div class="tutorial-welcome" id="tutorialWelcome">
+            <h2>🏗️ 歡迎使用建築AI助手！</h2>
+            <p>讓我們花1分鐘時間，<br>快速了解系統的主要功能。</p>
+            <div class="tutorial-controls">
+                <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">
+                    跳過教學
+                </button>
+                <button class="tutorial-btn tutorial-btn-primary" onclick="startTutorial()">
+                    開始導覽 →
+                </button>
+            </div>
+            <div class="tutorial-checkbox">
+                <input type="checkbox" id="dontShowAgain">
+                <label for="dontShowAgain">下次不再顯示此教學</label>
+            </div>
+        </div>
+        
+        <!-- 功能介紹提示框 -->
+        <div class="tutorial-tooltip" id="tutorialTooltip" style="display: none;">
+            <h3>
+                <span class="step-icon" id="stepIcon">1</span>
+                <span id="stepTitle">說明文件</span>
+            </h3>
+            <p id="stepDescription">
+                點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。
+            </p>
+            <div class="tutorial-controls">
+                <button class="tutorial-btn tutorial-btn-secondary" onclick="skipTutorial()">
+                    跳過
+                </button>
+                <div>
+                    <button class="tutorial-btn tutorial-btn-secondary" onclick="prevStep()" id="prevBtn" style="display: none;">
+                        ← 上一步
+                    </button>
+                    <button class="tutorial-btn tutorial-btn-primary" onclick="nextStep()" id="nextBtn">
+                        下一步 →
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- 半透明遮罩層（未登入時顯示） -->
+    <div id="loginOverlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:10005;pointer-events:auto;display:none;"></div>
+
+    <!-- 點數不足遮罩層 -->
+    <div id="noCreditsOverlay" class="no-credits-overlay">
+        <div class="no-credits-notice">
+            <h3>⚠️ 點數不足</h3>
+            <div class="credits-info">
+                <p><strong>剩餘問題次數：<span id="remainingCredits">0</span></strong></p>
+                <p>每日問題次數：<span id="dailyLimit">5</span></p>
+                <p>額外點數：<span id="extraCredits">0</span></p>
+                <p>最高可累積：<span id="maxQuestionsDisplay">-</span></p>
+            </div>
+            <p>您今日的問題次數已用完。<br>請明天再來使用，或聯絡管理員增加額外點數。</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="tutorial-btn tutorial-btn-secondary" onclick="hideNoCreditsNotice()">
+                    我知道了
+                </button>
+                <button class="tutorial-btn tutorial-btn-primary" onclick="checkCreditsAgain()">
+                    重新檢查
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 教學步驟陣列（移到 JS 內部）
+        const tutorialSteps = [
+            {
+                title: "說明文件",
+                description: "點擊此開關可以查看詳細的系統說明文件，了解資料庫內容和使用方式。",
+                target: "header",
+                selector: ".doc-toggle",
+                position: "right"
+            },
+            {
+                title: "刷新聊天記錄",
+                description: "點擊此按鈕可以清空當前對話，開始新的對話。這是 Flowise 內建的功能。",
+                target: "header",
+                selector: ".chain-selector",
+                position: "relative",
+                offsetX: 50,
+                offsetY: 50
+            },
+            {
+                title: "下載儲存",
+                description: "聊天結束後，可以將對話記錄儲存為TXT、Word、PDF或長截圖格式。",
+                target: "chat",
+                selector: ".pdf-button",
+                position: "left"
+            }
+        ];
+        
+        // 檢查是否需要顯示教學
+        function checkShowTutorial() {
+            const dontShow = localStorage.getItem('tutorial-dont-show');
+            
+            // 只有當用戶主動勾選「下次不用顯示」才不顯示
+            if (!dontShow) {
+                // 等待頁面完全載入後顯示教學
+                setTimeout(showTutorial, 1000);
+            }
+        }
+        
+        // 顯示教學
+        function showTutorial() {
+            tutorialActive = true;
+            document.getElementById('tutorialOverlay').style.display = 'block';
+            document.getElementById('tutorialWelcome').style.display = 'block';
+        }
+        
+        // 開始教學導覽
+        function startTutorial() {
+            document.getElementById('tutorialWelcome').style.display = 'none';
+            document.getElementById('tutorialTooltip').style.display = 'block';
+            currentStep = 0;
+            showStep(currentStep);
+        }
+        
+        // 顯示指定步驟
+        function showStep(stepIndex) {
+            if (stepIndex >= tutorialSteps.length) {
+                completeTutorial();
+                return;
+            }
+            
+            const step = tutorialSteps[stepIndex];
+            const spotlight = document.getElementById('tutorialSpotlight');
+            const tooltip = document.getElementById('tutorialTooltip');
+            const progress = document.getElementById('tutorialProgress');
+            
+            // 更新進度
+            progress.textContent = `步驟 ${stepIndex + 1} / ${tutorialSteps.length}`;
+            
+            // 更新提示框內容
+            document.getElementById('stepIcon').textContent = stepIndex + 1;
+            document.getElementById('stepTitle').textContent = step.title;
+            document.getElementById('stepDescription').textContent = step.description;
+            
+            // 控制按鈕顯示
+            document.getElementById('prevBtn').style.display = stepIndex > 0 ? 'inline-block' : 'none';
+            document.getElementById('nextBtn').textContent = stepIndex === tutorialSteps.length - 1 ? '完成' : '下一步 →';
+            
+            // 定位高亮框和提示框
+            positionElements(step, spotlight, tooltip);
+        }
+        
+        // 定位元素（核心功能）
+        function positionElements(step, spotlight, tooltip) {
+            // 根據目標 iframe 找到元素位置
+            let targetFrame, targetElement;
+            
+            if (step.target === 'header') {
+                targetFrame = document.getElementById('headerFrame');
+            } else if (step.target === 'chat') {
+                targetFrame = document.getElementById('chatFrame');
+            }
+            
+            // 等待 iframe 載入完成
+            setTimeout(() => {
+                try {
+                    const frameDoc = targetFrame.contentDocument || targetFrame.contentWindow.document;
+                    targetElement = frameDoc.querySelector(step.selector);
+                    
+                    if (targetElement) {
+                        // 計算元素在整個頁面中的位置
+                        const frameRect = targetFrame.getBoundingClientRect();
+                        const elementRect = targetElement.getBoundingClientRect();
+                        
+                        let absoluteRect = {
+                            top: frameRect.top + elementRect.top,
+                            left: frameRect.left + elementRect.left,
+                            width: elementRect.width,
+                            height: elementRect.height,
+                            right: frameRect.left + elementRect.right,
+                            bottom: frameRect.top + elementRect.bottom
+                        };
+                        
+                        // 檢查是否為手機版
+                        const isMobile = window.innerWidth <= 768;
+                        
+                        // 特殊處理：相對定位（針對刷新按鈕）
+                        if (step.position === 'relative') {
+                            // 基於選擇器位置，加上偏移量
+                            let spotlightOffsetX = (step.offsetX || 0) - 30; // 小框往左30px
+                            let spotlightOffsetY = (step.offsetY || 0);
+                            
+                            // 手機版調整：小框位置
+                            if (isMobile) {
+                                spotlightOffsetX -= 20; // 再往左20px
+                                spotlightOffsetY -= 30; // 往上30px
+                            }
+                            
+                            let spotlightRect = {
+                                top: absoluteRect.bottom + spotlightOffsetY,
+                                left: absoluteRect.right + spotlightOffsetX,
+                                width: 40, // 假設按鈕大小
+                                height: 40,
+                                right: absoluteRect.right + spotlightOffsetX + 40,
+                                bottom: absoluteRect.bottom + spotlightOffsetY + 40
+                            };
+                            
+                            // 設定高亮框位置（小框）
+                            spotlight.style.top = (spotlightRect.top - 8) + 'px';
+                            spotlight.style.left = (spotlightRect.left - 8) + 'px';
+                            spotlight.style.width = (spotlightRect.width + 16) + 'px';
+                            spotlight.style.height = (spotlightRect.height + 16) + 'px';
+                            spotlight.style.display = 'block';
+                            
+                            // 提示框基於原始位置（大框調整）
+                            absoluteRect = {
+                                ...absoluteRect,
+                                top: absoluteRect.bottom + 120, // 往下20px
+                                left: absoluteRect.right - 50  // 往左50px
+                            };
+                        } else {
+                            // 設定高亮框位置
+                            spotlight.style.top = (absoluteRect.top - 8) + 'px';
+                            spotlight.style.left = (absoluteRect.left - 8) + 'px';
+                            spotlight.style.width = (absoluteRect.width + 16) + 'px';
+                            spotlight.style.height = (absoluteRect.height + 16) + 'px';
+                            spotlight.style.display = 'block';
+                        }
+                        
+                        // 設定提示框位置
+                        positionTooltip(tooltip, absoluteRect, step.position === 'relative' ? 'left' : step.position);
+                        
+                    } else {
+                        console.warn('找不到目標元素:', step.selector);
+                        // 如果找不到元素，顯示在螢幕中央
+                        spotlight.style.display = 'none';
+                        tooltip.style.top = '50%';
+                        tooltip.style.left = '50%';
+                        tooltip.style.transform = 'translate(-50%, -50%)';
+                    }
+                } catch (e) {
+                    console.error('定位元素時發生錯誤:', e);
+                    // 降級處理：顯示在螢幕中央
+                    spotlight.style.display = 'none';
+                    tooltip.style.top = '50%';
+                    tooltip.style.left = '50%';
+                    tooltip.style.transform = 'translate(-50%, -50%)';
+                }
+            }, 500);
+        }
+        
+        // 定位提示框
+        function positionTooltip(tooltip, targetRect, position) {
+            const tooltipWidth = 350;
+            const tooltipHeight = 200;
+            const padding = 20;
+            
+            let top, left, transform = '';
+            
+            // 檢查是否為手機版
+            const isMobile = window.innerWidth <= 768;
+            
+            // 特殊處理步驟4：下載按鈕位置調整
+            if (currentStep === 3) { // 步驟4（index為3）
+                // 往上50px，往左50px
+                targetRect = {
+                    ...targetRect,
+                    top: targetRect.top - 50,
+                    left: targetRect.left - 50,
+                    right: targetRect.right - 50,
+                    bottom: targetRect.bottom - 50
+                };
+            }
+            
+            switch (position) {
+                case 'top':
+                    top = targetRect.top - tooltipHeight - padding;
+                    left = targetRect.left + (targetRect.width / 2);
+                    transform = 'translateX(-50%)';
+                    break;
+                case 'bottom':
+                    top = targetRect.bottom + padding;
+                    left = targetRect.left + (targetRect.width / 2);
+                    transform = 'translateX(-50%)';
+                    break;
+                case 'left':
+                    top = targetRect.top + (targetRect.height / 2);
+                    left = targetRect.left - tooltipWidth - padding;
+                    transform = 'translateY(-50%)';
+                    break;
+                default:
+                    top = targetRect.bottom + padding;
+                    left = targetRect.left;
+                    break;
+            }
+            
+            // 手機版調整：步驟1、2的提示框防止被遮住
+            if (isMobile && (currentStep === 0 || currentStep === 1)) {
+                // 強制靠左對齊，留出安全邊距
+                left = 20;
+                transform = 'none';
+                
+                // 添加手機版樣式類
+                tooltip.classList.add('tutorial-tooltip-mobile-adjust');
+            } else {
+                tooltip.classList.remove('tutorial-tooltip-mobile-adjust');
+            }
+            
+            // 確保提示框不會超出螢幕邊界（桌面版）
+            if (!isMobile || (currentStep !== 0 && currentStep !== 1)) {
+                const maxWidth = window.innerWidth - tooltipWidth - padding;
+                const maxHeight = window.innerHeight - tooltipHeight - padding;
+                
+                if (left < padding) left = padding;
+                if (left > maxWidth) left = maxWidth;
+                if (top < padding) top = padding;
+                if (top > maxHeight) top = maxHeight;
+            }
+            
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+            tooltip.style.transform = transform;
+        }
+        
+        // 下一步
+        function nextStep() {
+            currentStep++;
+            if (currentStep >= tutorialSteps.length) {
+                completeTutorial();
+            } else {
+                showStep(currentStep);
+            }
+        }
+        
+        // 上一步
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+        
+        // 跳過教學
+        function skipTutorial() {
+            const dontShowAgain = document.getElementById('dontShowAgain').checked;
+            if (dontShowAgain) {
+                localStorage.setItem('tutorial-dont-show', 'true');
+            }
+            hideTutorial();
+        }
+        
+        // 完成教學
+        function completeTutorial() {
+            // 移除：不再自動記錄 tutorial-completed
+            
+            // 顯示完成訊息
+            const tooltip = document.getElementById('tutorialTooltip');
+            tooltip.innerHTML = `
+                <h3>
+                    <span class="step-icon">✓</span>
+                    教學完成！
+                </h3>
+                <p>您已經了解了系統的主要功能。現在可以開始使用建築AI助手了！</p>
+                <div class="tutorial-checkbox">
+                    <input type="checkbox" id="completeDontShowAgain">
+                    <label for="completeDontShowAgain">下次不用顯示此教學</label>
+                </div>
+                <div class="tutorial-controls">
+                    <button class="tutorial-btn tutorial-btn-primary" onclick="finishTutorial()">
+                        開始使用 →
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('tutorialSpotlight').style.display = 'none';
+        }
+        
+        // 結束教學（新增函數處理勾選狀態）
+        function finishTutorial() {
+            const dontShowAgain = document.getElementById('completeDontShowAgain').checked;
+            if (dontShowAgain) {
+                localStorage.setItem('tutorial-dont-show', 'true');
+            }
+            hideTutorial();
+        }
+        
+        // 隱藏教學
+        function hideTutorial() {
+            document.getElementById('tutorialOverlay').style.display = 'none';
+            tutorialActive = false;
+        }
+        
+        // 重置教學（供開發測試用）
+        function resetTutorial() {
+            localStorage.removeItem('tutorial-dont-show'); // 只清除 dont-show 標記
+            location.reload();
+        }
+
+        // 點數不足相關函數
+        function showNoCreditsNotice() {
+            document.getElementById('noCreditsOverlay').style.display = 'block';
+        }
+
+        function hideNoCreditsNotice() {
+            document.getElementById('noCreditsOverlay').style.display = 'none';
+        }
+
+        function checkCreditsAgain() {
+            hideNoCreditsNotice();
+            // 重新載入用戶資料
+            loadUserData();
+        }
+        
+        // ===== 原有的訊息處理邏輯 =====
+        
+        // 處理從 header 接收的消息
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'chatflowChange') {
+                // 儲存當前選定的 chatflowId
+                currentChatflowId = event.data.chatflowId;
+                
+                // 如果目前是聊天模式，則更新聊天框架的 URL
+                if (currentMode === 'chat') {
+                    document.getElementById('chatFrame').src = 
+                        `chat.html?chatflowid=${currentChatflowId}`;
+                }
+            }
+            else if (event.data && event.data.type === 'modeChange') {
+                // 更新當前模式
+                currentMode = event.data.mode;
+                
+                // 根據模式切換顯示的頁面
+                if (currentMode === 'chat') {
+                    document.getElementById('chatFrame').src = 
+                        `chat.html?chatflowid=${currentChatflowId}`;
+                } else {
+                    document.getElementById('chatFrame').src = 'intro.html';
+                }
+            }
+        });
+        
+        // 頁面載入完成後檢查是否顯示教學
+        window.addEventListener('load', function() {
+            checkShowTutorial();
+        });
+        
+        // 視窗大小改變時重新定位（如果教學正在進行）
+        window.addEventListener('resize', function() {
+            if (tutorialActive && currentStep < tutorialSteps.length) {
+                setTimeout(() => showStep(currentStep), 100);
+            }
+        });
+        
+        // 開發者工具：按 Ctrl+Alt+R 重置教學
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.altKey && e.key === 'r') {
+                e.preventDefault(); // 防止瀏覽器預設行為
+                resetTutorial();
+            }
+        });
+    </script>
+
+    <!-- Firebase Auth SDK -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
       import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-      import { getFirestore, doc, getDoc, onSnapshot, setDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+      import { getFirestore, doc, getDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyBBizQYeu8J-OM_OW2EVQrB3o1CDZ7IQkA",
@@ -443,7 +875,7 @@
       const authMsg = document.getElementById('authMsg');
       const loginOverlay = document.getElementById('loginOverlay');
       const noCreditsOverlay = document.getElementById('noCreditsOverlay');
-
+      
       // 表單
       const loginForm = document.getElementById('loginForm');
       const registerForm = document.getElementById('registerForm');
@@ -453,24 +885,18 @@
       const showForgot = document.getElementById('showForgot');
       const backToLogin = document.getElementById('backToLogin');
 
-      // 真的收不到彈窗元素
-      const reallyNotReceivePopup = document.getElementById('reallyNotReceivePopup');
-      const reallyNotReceiveEmail = document.getElementById('reallyNotReceiveEmail');
-      const reallyNotReceiveName = document.getElementById('reallyNotReceiveName');
-      const reallyNotReceiveMessage = document.getElementById('reallyNotReceiveMessage');
-      const reallyNotReceiveCancelBtn = document.getElementById('reallyNotReceiveCancelBtn');
-      const reallyNotReceiveSubmitBtn = document.getElementById('reallyNotReceiveSubmitBtn');
-      const reallyNotReceiveStatus = document.getElementById('reallyNotReceiveStatus');
-
       // UI 切換
       function showForm(form) {
         const authSection = document.getElementById('authSection');
+        // 只控制表單與驗證提示，不隱藏 authSection
         loginForm.style.display = form === 'login' ? 'block' : 'none';
         registerForm.style.display = form === 'register' ? 'block' : 'none';
         forgotForm.style.display = form === 'forgot' ? 'block' : 'none';
         const verifyNotice = document.getElementById('verifyNotice');
         if (verifyNotice) verifyNotice.style.display = 'none';
         authMsg.textContent = '';
+        
+        // 切換authSection樣式
         if (form === 'none') {
           authSection.classList.add('logout-only');
           loginOverlay.style.display = 'none';
@@ -479,7 +905,7 @@
           loginOverlay.style.display = 'block';
         }
       }
-
+      
       showForm('login');
       showRegister.onclick = e => { e.preventDefault(); showForm('register'); };
       showLogin.onclick = e => { e.preventDefault(); showForm('login'); };
@@ -500,6 +926,7 @@
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           await sendEmailVerification(user);
+          // 新增：根據等級1寫入 dailyQuestions 與 maxQuestions
           const rules = await getLevelRules();
           const rule = rules.find(r => r.level === 1) || { daily: 5, max: 8 };
           await setDoc(doc(db, 'users', user.uid), {
@@ -517,14 +944,15 @@
           authMsg.textContent = '註冊失敗：' + (err.message || err.code);
         }
       };
-
+      
       // 註冊後「我已完成信箱驗證」按鈕
       document.getElementById('verifyCheckBtn').onclick = function() {
         document.getElementById('verifyNotice').style.display = 'none';
+        // 只顯示登入表單，不自動填入任何資料
         showForm('login');
         authMsg.textContent = '請登入，若尚未驗證信箱請先完成信箱驗證。';
       };
-
+      
       // 登入
       loginForm.onsubmit = async e => {
         e.preventDefault();
@@ -533,9 +961,10 @@
         try {
           const result = await signInWithEmailAndPassword(auth, email, password);
           if (!result.user.emailVerified) {
-            authMsg.innerHTML = '信箱尚未驗證，請先收信點擊驗證連結。<br><a href="#" id="resendVerificationLink" style="color:#0984e3;cursor:pointer;">重新發送驗證信</a> <button id="reallyNotReceiveBtn" style="background:#e67e22;color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;margin-left:10px;">真的收不到</button>';
+            authMsg.innerHTML = '信箱尚未驗證，請先收信點擊驗證連結。<br><a href="#" id="resendVerificationLink" style="color:#0984e3;cursor:pointer;">重新發送驗證信</a>';
             logoutBtn.style.display = 'inline-block';
 
+            // 新增重新發送驗證信事件監聽
             setTimeout(() => {
               const resendLink = document.getElementById('resendVerificationLink');
               if (resendLink) {
@@ -547,13 +976,6 @@
                   } catch (error) {
                     authMsg.textContent = '重新發送驗證信失敗：' + (error.message || error.code);
                   }
-                };
-              }
-              const reallyNotReceiveBtn = document.getElementById('reallyNotReceiveBtn');
-              if (reallyNotReceiveBtn) {
-                reallyNotReceiveBtn.onclick = (e) => {
-                  e.preventDefault();
-                  showReallyNotReceivePopup(result.user.email);
                 };
               }
             }, 100);
@@ -596,6 +1018,7 @@
             return levelRulesCache;
           }
         } catch (e) {}
+        // fallback 預設
         levelRulesCache = [
           { level: 1, daily: 5, max: 8 },
           { level: 2, daily: 10, max: 20 },
@@ -608,49 +1031,75 @@
 
       // 每日補充點數機制 (使用本地時區)
       async function supplementCreditsIfNeeded(userDocRef, userData) {
+        // 取得台灣時區的今日日期 (YYYY-MM-DD)
         const now = new Date();
-        const offset = 8;
+        const offset = 8; // UTC+8 for Taiwan
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
         const today = new Date(utc + (3600000 * offset)).toISOString().slice(0, 10);
+        
         const lastReset = userData.lastReset || '';
+        console.log('🔁 檢查點數補充: lastReset=', lastReset, 'today=', today);
+        
         const userLevel = userData.level || 1;
         const rules = await getLevelRules();
         const rule = rules.find(r => r.level === userLevel) || rules[0];
+        
         if (lastReset === today) {
+          console.log('⏭️ 今日已補充過點數');
           return false;
         }
+
+        // 計算新點數 (加上每日補充量，但不超過上限)
         const maxQuestions = userData.maxQuestions || rule.max;
         let newQuestionsLeft = (userData.questionsLeft || 0) + (rule.daily || 0);
         if (newQuestionsLeft > maxQuestions) newQuestionsLeft = maxQuestions;
+
+        console.log('🔄 重置點數:',
+          '原有點數:', userData.questionsLeft || 0,
+          '重置為:', newQuestionsLeft,
+          '上限:', maxQuestions);
+
         await setDoc(userDocRef, {
           lastReset: today,
           questionsLeft: newQuestionsLeft,
           dailyQuestions: rule.daily,
           maxQuestions: rule.max
         }, { merge: true });
+        
+        console.log('✅ 點數補充完成');
         return true;
       }
 
       // 載入用戶資料（補充點數）
       async function loadUserData() {
         if (!currentUser) return;
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          await supplementCreditsIfNeeded(userDocRef, userData);
-          const refreshedDoc = await getDoc(userDocRef);
-          const refreshedData = refreshedDoc.data();
-          updateCreditsDisplay(refreshedData);
-          checkCreditsStatus(refreshedData);
-        } else {
-          creditsDisplay.textContent = '(5)';
+        console.log('📊 載入用戶資料:', currentUser.uid);
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            // 每日補充點數
+            await supplementCreditsIfNeeded(userDocRef, userData);
+            // 重新取得最新資料
+            const refreshedDoc = await getDoc(userDocRef);
+            const refreshedData = refreshedDoc.data();
+            updateCreditsDisplay(refreshedData);
+            checkCreditsStatus(refreshedData);
+          } else {
+            console.log('⚠️ 用戶文件不存在，顯示預設值');
+            creditsDisplay.textContent = '(5)';
+          }
+        } catch (error) {
+          console.error('❌ 載入用戶資料錯誤:', error);
+          creditsDisplay.textContent = '(錯誤)';
         }
       }
 
       // 即時監聽用戶資料變化（不需補充，僅顯示）
       function setupUserDataListener() {
         if (!currentUser) return;
+        console.log('🔄 設置用戶資料監聽器');
         if (userDataListener) {
           userDataListener();
         }
@@ -659,12 +1108,14 @@
             const userData = docSnap.data();
             updateCreditsDisplay(userData);
             checkCreditsStatus(userData);
+            // 新增：將使用者等級傳送給 header iframe
             const headerFrame = document.getElementById('headerFrame');
             if (headerFrame && headerFrame.contentWindow) {
               headerFrame.contentWindow.postMessage({
                 type: 'userLevelUpdate',
                 userLevel: userData.level || 1
               }, '*');
+              console.log('📤 傳送使用者等級到 header:', userData.level);
             }
           } else {
             creditsDisplay.textContent = '(5)';
@@ -680,13 +1131,16 @@
         const extraCredits = userData.extraCredits || 0;
         const totalCredits = questionsLeft + extraCredits;
         const maxQuestions = userData.maxQuestions || '';
+
         creditsDisplay.textContent = `(${totalCredits})`;
         document.getElementById('remainingCredits').textContent = totalCredits;
         document.getElementById('dailyLimit').textContent = userData.dailyQuestions || 5;
         document.getElementById('extraCredits').textContent = extraCredits;
+        // 顯示最高可累積次數
         if (document.getElementById('maxQuestionsDisplay')) {
           document.getElementById('maxQuestionsDisplay').textContent = maxQuestions;
         }
+        console.log('💰 點數更新:', { questionsLeft, extraCredits, totalCredits, maxQuestions });
       }
 
       // 檢查點數狀態
@@ -694,77 +1148,34 @@
         const questionsLeft = userData.questionsLeft || 0;
         const extraCredits = userData.extraCredits || 0;
         const totalCredits = questionsLeft + extraCredits;
+        
         if (totalCredits <= 0) {
+          console.log('⚠️ 點數不足，啟動灰卡');
           showNoCreditsNotice();
+          // 顯示遮罩但不阻止登出
           loginOverlay.style.display = 'block';
-          loginOverlay.style.background = 'rgba(255, 0, 0, 0.15)';
+          loginOverlay.style.background = 'rgba(255, 0, 0, 0.15)'; // 紅色遮罩
         } else {
+          console.log('✅ 點數充足，隱藏灰卡');
           hideNoCreditsNotice();
+          // 確保遮罩被隱藏
           if (currentUser && currentUser.emailVerified) {
             loginOverlay.style.display = 'none';
           }
         }
       }
 
-      // 真的收不到彈窗顯示
-      function showReallyNotReceivePopup(email) {
-        reallyNotReceiveEmail.value = email || '';
-        reallyNotReceiveName.value = '';
-        reallyNotReceiveMessage.value = '';
-        reallyNotReceiveStatus.textContent = '';
-        reallyNotReceivePopup.style.display = 'block';
-      }
-      // 真的收不到彈窗隱藏
-      function hideReallyNotReceivePopup() {
-        reallyNotReceivePopup.style.display = 'none';
-      }
-      reallyNotReceiveCancelBtn.onclick = () => {
-        hideReallyNotReceivePopup();
-      };
-      // 送出留言
-      reallyNotReceiveSubmitBtn.onclick = async () => {
-        const email = reallyNotReceiveEmail.value.trim();
-        const name = reallyNotReceiveName.value.trim();
-        const message = reallyNotReceiveMessage.value.trim();
-        if (!email) {
-          reallyNotReceiveStatus.textContent = 'Email不可為空';
-          return;
-        }
-        if (!name) {
-          reallyNotReceiveStatus.textContent = '請輸入貴姓大名';
-          return;
-        }
-        if (!message) {
-          reallyNotReceiveStatus.textContent = '請輸入留言內容';
-          return;
-        }
-        if (message.length > 100) {
-          reallyNotReceiveStatus.textContent = '留言內容不可超過100字';
-          return;
-        }
-        reallyNotReceiveStatus.textContent = '送出中...';
-        try {
-          await addDoc(collection(db, 'supportMessages'), {
-            email,
-            name,
-            message,
-            createdAt: serverTimestamp()
-          });
-          reallyNotReceiveStatus.textContent = '留言已送出，感謝您的回饋！';
-          setTimeout(() => {
-            hideReallyNotReceivePopup();
-          }, 2000);
-        } catch (error) {
-          reallyNotReceiveStatus.textContent = '送出失敗，請稍後再試';
-        }
-      };
+      // 將函數暴露到全域
+      window.loadUserData = loadUserData;
 
       // 狀態監聽
       onAuthStateChanged(auth, async (user) => {
+        // 清除舊的監聽器
         if (userDataListener) {
           userDataListener();
           userDataListener = null;
         }
+        
         if (user) {
           currentUser = user;
           if (!user.emailVerified) {
@@ -777,7 +1188,10 @@
             creditsDisplay.textContent = '(載入中...)';
             authMsg.textContent = '';
             showForm('none');
+            
+            // 載入用戶資料並設置監聽器
             setupUserDataListener();
+            // 新增：登入後立即載入用戶資料，觸發每日補充點數
             await loadUserData();
           }
         } else {
