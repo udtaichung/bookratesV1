@@ -1209,27 +1209,27 @@
         #feedbackBubble {
             position: fixed;
             bottom: 80pt;
-            left: 0;
+            left: 5pt;
             width: 30px;
             height: 30px;
-            background: #00ff88;
-            border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.6);
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 24px;
             user-select: none;
-            transition: background 0.3s ease;
+            transition: none;
             z-index: 10020;
         }
         #feedbackBubble:hover {
-            background: #00cc6a;
-            box-shadow: 0 6px 16px rgba(0, 204, 106, 0.8);
+            background: transparent;
+            box-shadow: none;
         }
     </style>
-    <div id="feedbackBubble" title="留言板表單">💬</div>
+    <div id="feedbackBubble" title="留言板表單">📩</div>
     <script>
         document.getElementById('feedbackBubble').addEventListener('click', function() {
             window.open('https://forms.gle/H7KifRFkDpkE5A4r6', '_blank');
