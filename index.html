@@ -383,6 +383,9 @@
     </div>
 
     <script>
+        // 教學系統狀態變數，避免未定義錯誤
+        let tutorialActive = false;
+
         // 點擊疑難雜症留言泡泡，顯示留言彈窗
         document.getElementById('troubleBubble').addEventListener('click', function() {
             document.getElementById('troubleModal').style.display = 'flex';
@@ -397,6 +400,48 @@
             const msg = document.getElementById('troubleMsg');
             if (msg) msg.textContent = '';
         }
+
+        // 留言表單送出事件
+        document.getElementById('troubleForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('troubleEmail').value.trim();
+            const name = document.getElementById('troubleName').value.trim();
+            const message = document.getElementById('troubleMessage').value.trim();
+            const troubleMsg = document.getElementById('troubleMsg');
+
+            if (!email || !name || !message) {
+                troubleMsg.textContent = '請完整填寫所有欄位。';
+                return;
+            }
+
+            troubleMsg.textContent = '送出中...';
+
+            try {
+                // 使用 Firebase Firestore 寫入留言資料
+                const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js');
+                const db = getFirestore();
+
+                await addDoc(collection(db, 'troubleMessages'), {
+                    email: email,
+                    name: name,
+                    message: message,
+                    createdAt: serverTimestamp()
+                });
+
+                troubleMsg.textContent = '留言已送出，感謝您的回饋！';
+                // 清空表單
+                event.target.reset();
+
+                // 延遲關閉彈窗
+                setTimeout(() => {
+                    closeTroubleModal();
+                    troubleMsg.textContent = '';
+                }, 2000);
+            } catch (error) {
+                troubleMsg.textContent = '送出失敗，請稍後再試。';
+                console.error('留言送出錯誤:', error);
+            }
+        });
     </script>
 
     <!-- 疑難雜症留言彈窗 -->
