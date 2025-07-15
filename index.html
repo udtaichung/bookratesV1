@@ -377,6 +377,39 @@
         <iframe id="chatFrame" src="chat.html"></iframe>
     </div>
 
+    <!-- 真的收不到留言彈窗 -->
+    <div id="reallyNotReceiveModal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10010; justify-content: center; align-items: center; font-family: 'Microsoft JhengHei', Arial, sans-serif;">
+        <div style="background: white; border-radius: 15px; padding: 25px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0; color: #1a365d;">真的收不到認證信？請留言</h3>
+            <form id="reallyNotReceiveForm">
+                <div style="margin-bottom: 15px;">
+                    <label for="reallyEmail" style="font-weight: bold;">電子郵件</label><br>
+                    <input type="email" id="reallyEmail" name="reallyEmail" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="reallyName" style="font-weight: bold;">貴姓大名</label><br>
+                    <input type="text" id="reallyName" name="reallyName" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="reallyMessage" style="font-weight: bold;">留言內容 (限100字)</label><br>
+                    <textarea id="reallyMessage" name="reallyMessage" maxlength="100" required style="width: 100%; height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; resize: none;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeReallyNotReceiveModal()" style="background: #e2e8f0; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">取消</button>
+                    <button type="submit" style="background: #00ff88; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; color: #1a365d; font-weight: bold;">送出留言</button>
+                </div>
+            </form>
+            <div id="reallyNotReceiveMsg" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+    </div>
+    
+    <!-- 真的收不到按鈕 -->
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10005;">
+        <button id="reallyNotReceiveBtn" style="background: #fed7d7; border: none; padding: 10px 18px; border-radius: 12px; color: #742a2a; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            真的收不到認證信？
+        </button>
+    </div>
+
     <!-- 教學引導系統 -->
     <div class="tutorial-overlay" id="tutorialOverlay">
         <!-- 明亮高亮框 -->
