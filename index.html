@@ -386,7 +386,7 @@
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // 教學系統狀態變數，避免未定義錯誤
-        let tutorialActive = false;
+        window.tutorialActive = false;
 
         // 點擊疑難雜症留言泡泡，顯示留言彈窗
         document.getElementById('troubleBubble').addEventListener('click', function() {
