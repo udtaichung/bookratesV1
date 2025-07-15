@@ -508,6 +508,27 @@
                 <button type="submit" class="btn btn-primary">儲存等級規則</button>
             </form>
         </div>
+
+        <!-- 收不到認證信留言管理 -->
+        <div class="action-section" id="supportMessagesSection" style="margin-top: 30px;">
+            <h3>📩 收不到認證信留言管理</h3>
+            <div id="supportMessagesLoading" class="loading" style="margin-bottom: 10px; display: none;">
+                <div class="spinner"></div>
+                <p>載入留言中...</p>
+            </div>
+            <table class="users-table" id="supportMessagesTable" style="width: 100%; display: none;">
+                <thead>
+                    <tr>
+                        <th>電子郵件</th>
+                        <th>姓名</th>
+                        <th>留言內容</th>
+                        <th>送出時間</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="supportMessagesTableBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- 編輯用戶彈窗 -->
