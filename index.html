@@ -382,7 +382,9 @@
         ?
     </div>
 
-    <script>
+    <script type="module">
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
         // 教學系統狀態變數，避免未定義錯誤
         let tutorialActive = false;
 
@@ -417,8 +419,6 @@
             troubleMsg.textContent = '送出中...';
 
             try {
-                // 使用 Firebase Firestore 寫入留言資料
-                const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js');
                 const db = getFirestore();
 
                 await addDoc(collection(db, 'troubleMessages'), {
